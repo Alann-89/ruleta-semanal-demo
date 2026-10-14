@@ -2,6 +2,8 @@
 
 Aplicación web de fidelización para una tienda física: una **ruleta semanal** con un giro por cuenta y semana, premios con código y QR, y un panel para administrar y canjear. Este repositorio es la **versión pública de portafolio** y funciona con **datos ficticios**.
 
+**▶ Demo en vivo:** https://ruleta-semanal-demo.scriptconcept.workers.dev
+
 ## Qué demuestra
 - **El servidor decide el resultado.** El giro es una transacción de PostgreSQL con aleatoriedad segura; el navegador solo anima hasta el sector que devolvió la base de datos.
 - **Un giro base por cuenta y semana** (lunes a domingo, zona horaria configurable), garantizado con un índice único e idempotencia: doble clic, reintentos y solicitudes simultáneas no consumen dos oportunidades.
