@@ -4,9 +4,11 @@ import type { AdminConfig, HoursRow, Sector, SiteConfig } from '../lib/types';
 import { safeUrl } from '../lib/format';
 import { DEFAULT_LOGO } from '../lib/defaultConfig';
 import { uploadImage } from '../lib/media';
-import { contrastInk } from '../lib/wheel';
 import { Alert, Field, PageLoader, Spinner, Switch } from '../components/ui';
 import { Wheel } from '../components/Wheel';
+import { SeasonDecor } from '../components/SeasonDecor';
+import { SEASONS, effectiveConfig, resolveSeason, seasonById, seasonSectors, suggestedRange, suggestions, ymd, type Season } from '../lib/seasons';
+import { themeVars } from '../lib/theme';
 import { useToast } from '../context/Toast';
 import { useApp } from '../context/AppContext';
 
@@ -59,15 +61,11 @@ function Range({ label, value, onChange, hint }: { label: string; value: number;
 }
 
 /** Vista previa fiel: usa los mismos componentes y variables CSS que el sitio real. */
-function Preview({ cfg, sectors, device }: { cfg: SiteConfig; sectors: Sector[]; device: 'mobile' | 'desktop' }) {
-  const t = cfg.theme;
-  const style = {
-    '--c-primary': t.primary, '--c-secondary': t.secondary, '--c-accent': t.accent, '--c-bg': t.background,
-    '--on-primary': contrastInk(t.primary, 3.4), '--on-secondary': contrastInk(t.secondary, 3.4), '--on-accent': contrastInk(t.accent),
-    '--hero-ink': contrastInk(t.secondary, 4.5),
-    '--glow': String(t.glow / 100), '--motion': String(t.motion / 100),
-    '--bg-image': 'none', color: 'var(--ink)', fontFamily: 'var(--font-sans)',
-  } as CSSProperties;
+function Preview({ cfg: raw, sectors: baseSectors, device }: { cfg: SiteConfig; sectors: Sector[]; device: 'mobile' | 'desktop' }) {
+  // La vista previa siempre muestra la temporada elegida, aunque sus fechas aún no lleguen.
+  const { config: cfg, season, fx } = effectiveConfig(raw, { force: true });
+  const sectors = seasonSectors(baseSectors, season, fx.wheel);
+  const style = { ...themeVars(cfg.theme), '--bg-image': 'none', color: 'var(--ink)', fontFamily: 'var(--font-sans)' } as CSSProperties;
   const logo = safeUrl(cfg.store.logo_url);
   return (
     <div className={`mx-auto overflow-hidden rounded-[1.75rem] border-[6px] border-slate-800 shadow-xl ${device === 'mobile' ? 'w-[375px] max-w-full' : 'w-full'}`} aria-label={`Vista previa ${device === 'mobile' ? 'móvil' : 'de escritorio'}`}>
@@ -77,7 +75,8 @@ function Preview({ cfg, sectors, device }: { cfg: SiteConfig; sectors: Sector[];
           <span className="font-display truncate text-base font-extrabold uppercase tracking-[0.04em]">{cfg.store.name}</span>
         </header>
         <section className="hero">
-          <div className={`mx-auto px-4 pb-12 pt-6 ${device === 'desktop' ? 'max-w-2xl' : ''}`}>
+          {season && fx.decor && <SeasonDecor season={season} />}
+          <div className={`relative mx-auto px-4 pb-12 pt-6 ${device === 'desktop' ? 'max-w-2xl' : ''}`}>
             <h1 className="font-display mx-auto max-w-[17ch] text-center text-[1.7rem] font-extrabold leading-[1.05]" style={{ color: 'var(--hero-ink)' }}>{cfg.copy.welcome_title}</h1>
             <div className="mx-auto max-w-[19rem] px-[1.5%] pb-1 pt-[13%]"><Wheel sectors={sectors} placeholder={sectors.length < 2} logoUrl={cfg.store.logo_url} storeName={cfg.store.name} /></div>
           </div>
@@ -101,6 +100,89 @@ function Preview({ cfg, sectors, device }: { cfg: SiteConfig; sectors: Sector[];
         </div>
       </div>
     </div>
+  );
+}
+
+/** Selector de diseños de temporada: se superponen al diseño de marca y pueden programarse por fechas. */
+function SeasonPicker({ theme, onChange }: { theme: SiteConfig['theme']; onChange: (fn: (t: SiteConfig['theme']) => void) => void }) {
+  const now = useMemo(() => new Date(), []);
+  const current = seasonById(theme.preset);
+  const hints = useMemo(() => suggestions(now).slice(0, 3), [now]);
+  const active = resolveSeason(theme, now);
+  const scheduled = !!(theme.preset_from || theme.preset_until);
+
+  const choose = (s: Season | null) => onChange((t) => {
+    t.preset = s?.id ?? null;
+    if (s) { t.preset_copy = true; t.preset_wheel = true; t.preset_decor = true; t.preset_from = null; t.preset_until = null; }
+  });
+  const toggleSchedule = (on: boolean) => onChange((t) => {
+    if (!on || !current) { t.preset_from = null; t.preset_until = null; return; }
+    const r = suggestedRange(current, now);
+    const start = ymd(now);
+    const end = ymd(new Date(now.getTime() + 14 * 86_400_000));
+    t.preset_from = r ? (r.from > start ? r.from : start) : start;
+    t.preset_until = r ? r.to : end;
+  });
+  const when = (d: number, inWin: boolean) => (inWin ? 'es temporada' : d === 1 ? 'empieza mañana' : `empieza en ${d} días`);
+
+  return (
+    <section className="card space-y-4 p-4" aria-labelledby="a-temporada">
+      <div>
+        <h2 id="a-temporada" className="font-display text-lg font-semibold">Diseño de temporada</h2>
+        <p className="text-sm text-dim">Viste la ruleta y la cabecera para una fecha especial: colores, decoración animada, colores de los sectores y textos. No borra tus colores de marca; al quitarlo o terminar las fechas, el sitio vuelve a como estaba.</p>
+      </div>
+
+      {hints.length > 0 && (
+        <div className="rounded-xl border border-line p-3" style={{ background: 'var(--surface-2, #f6f3ef)' }}>
+          <p className="mb-2 text-sm font-semibold">Sugerido para estas fechas</p>
+          <div className="flex flex-wrap gap-2">
+            {hints.map((h) => (
+              <button key={h.season.id} type="button" className="btn btn-ghost btn-sm" onClick={() => choose(h.season)}>
+                {h.season.emoji} {h.season.name} · <span className="text-dim">{when(h.daysUntil, h.inWindow)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div role="radiogroup" aria-label="Diseño de temporada" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {[null, ...SEASONS].map((s) => {
+          const on = (s?.id ?? null) === (current?.id ?? null);
+          const sw = s ? [s.colors.primary, s.colors.secondary, s.colors.accent, s.wheel[1] ?? '#fff'] : [theme.primary, theme.secondary, theme.accent, theme.background];
+          return (
+            <button key={s?.id ?? 'marca'} type="button" role="radio" aria-checked={on} onClick={() => choose(s)}
+              className="rounded-2xl border-2 bg-surface p-2.5 text-left transition-shadow hover:shadow-md focus-visible:outline-2"
+              style={{ borderColor: on ? '#a8340e' : 'var(--line)', boxShadow: on ? '0 0 0 3px rgb(168 52 14 / .15)' : undefined }}>
+              <span className="mb-2 flex h-7 overflow-hidden rounded-lg" aria-hidden="true">
+                {sw.map((c, i) => <span key={i} className="flex-1" style={{ background: c }} />)}
+              </span>
+              <span className="flex items-center gap-1.5 text-sm font-semibold"><span aria-hidden="true">{s?.emoji ?? '🏠'}</span>{s?.name ?? 'Diseño de marca'}{on && <span className="ml-auto text-xs font-bold" style={{ color: '#a8340e' }}>✓</span>}</span>
+              <span className="block text-xs text-dim">{s?.dates ?? 'Sin temporada'}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {current && (
+        <div className="space-y-3 border-t border-line pt-4">
+          <p className="text-sm" aria-live="polite">
+            {active ? <span className="font-semibold text-ok">Activo hoy en el sitio al publicar.</span>
+              : <span className="font-semibold text-warn">Programado: hoy no se muestra (fuera de las fechas).</span>}
+          </p>
+          <Switch checked={theme.preset_decor !== false} onChange={(v) => onChange((t) => { t.preset_decor = v; })} label="Decoración animada" hint="Figuras flotantes o que caen en la cabecera. Se detienen si el dispositivo pide menos movimiento." />
+          <Switch checked={theme.preset_wheel !== false} onChange={(v) => onChange((t) => { t.preset_wheel = v; })} label="Colores de la temporada en los sectores" hint="Solo cambia cómo se ve la ruleta; tus resultados y probabilidades no se tocan." />
+          <Switch checked={theme.preset_copy !== false} onChange={(v) => onChange((t) => { t.preset_copy = v; })} label="Usar también los textos de la temporada" hint="Título, texto del botón y mensajes. Si lo apagas, se usan tus textos de la sección «Textos»." />
+          <Switch checked={scheduled} onChange={toggleSchedule} label="Activar solo entre fechas" hint="Fuera de ese rango el sitio muestra tu diseño de marca, sin que tengas que volver a publicar." />
+          {scheduled && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Desde">{(id) => <input id={id} type="date" className="input" value={theme.preset_from ?? ''} onChange={(e) => onChange((t) => { t.preset_from = e.target.value || null; })} />}</Field>
+              <Field label="Hasta (inclusive)">{(id) => <input id={id} type="date" className="input" value={theme.preset_until ?? ''} min={theme.preset_from ?? undefined} onChange={(e) => onChange((t) => { t.preset_until = e.target.value || null; })} />}</Field>
+            </div>
+          )}
+          <p className="text-xs text-dim">Las fechas se comparan con la fecha del dispositivo de cada visitante. Los cambios llegan a los clientes al publicar.</p>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -193,6 +275,8 @@ export default function AppearancePage() {
             <ImageField label="Logo" hint="Cuadrado, de preferencia con fondo transparente o liso. Se comprime a 256 px." value={draft.store.logo_url} folder="branding" maxSide={256} onChange={(v) => upd((d) => { d.store.logo_url = v; })} />
           </section>
 
+          <SeasonPicker theme={draft.theme} onChange={(fn) => upd((d) => { fn(d.theme); })} />
+
           <section className="card space-y-4 p-4" aria-labelledby="a-color">
             <h2 id="a-color" className="font-display text-lg font-semibold">Colores, fondo y efectos</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -201,7 +285,7 @@ export default function AppearancePage() {
               <ColorField label="Acento (confeti y detalles)" value={draft.theme.accent} onChange={(v) => upd((d) => { d.theme.accent = v; })} />
               <ColorField label="Fondo de la página" value={draft.theme.background} onChange={(v) => upd((d) => { d.theme.background = v; })} />
             </div>
-            <p className="text-xs text-dim">El color principal es el naranja de marca (botón, tejado y sectores destacados); el secundario es el fondo del encabezado; el fondo es el de la página (claro). El texto de botones y sectores se elige solo para que tenga buen contraste.</p>
+            <p className="text-xs text-dim">{seasonById(draft.theme.preset) ? 'Estos son los colores de marca: se usan cuando no hay temporada activa. ' : ''}El color principal es el naranja de marca (botón, tejado y sectores destacados); el secundario es el fondo del encabezado; el fondo es el de la página (claro). El texto de botones y sectores se elige solo para que tenga buen contraste.</p>
             <ImageField label="Imagen de fondo (opcional)" hint="Se mezcla con un velo del color de fondo para no restar legibilidad. Se comprime a 1280 px." value={draft.theme.background_image_url} folder="branding" maxSide={1280} onChange={(v) => upd((d) => { d.theme.background_image_url = v; })} />
             <div className="grid gap-4 sm:grid-cols-2">
               <Range label="Intensidad de brillos" value={draft.theme.glow} onChange={(v) => upd((d) => { d.theme.glow = v; })} hint="Luces del fondo y focos de la ruleta" />

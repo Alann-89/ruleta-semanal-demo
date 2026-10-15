@@ -6,6 +6,8 @@ import type { Sector, SpinPayload } from '../lib/types';
 import { fmtDateTime, relativeTo, uuid } from '../lib/format';
 import { sfx, unlockAudio } from '../lib/sound';
 import { Wheel, type WheelHandle } from './Wheel';
+import { SeasonDecor } from './SeasonDecor';
+import { seasonSectors } from '../lib/seasons';
 import { ResultModal } from './ResultModal';
 import { Alert, Field } from './ui';
 import { IconGoogle } from './icons';
@@ -50,7 +52,7 @@ const REASONS: Record<string, string> = {
 
 /** Hero (titular + ruleta) y lámina blanca con el botón, el estado y el resto de la página (children). */
 export function WheelCard({ title, children }: { title: string; children?: ReactNode }) {
-  const { config, pub, pubLoading, me, session, authReady, clockOffset, signInWithGoogle, refreshMe, refreshPublic } = useApp();
+  const { config, season, seasonFx, pub, pubLoading, me, session, authReady, clockOffset, signInWithGoogle, refreshMe, refreshPublic } = useApp();
   const toast = useToast();
   const wheel = useRef<WheelHandle>(null);
   const [phase, setPhase] = useState<'idle' | 'requesting' | 'spinning'>('idle');
@@ -67,6 +69,7 @@ export function WheelCard({ title, children }: { title: string; children?: React
   const outcomes = pub?.outcomes ?? [];
   const sectors = frozen ?? outcomes;
   const placeholder = sectors.length < 2;
+  const wheelSectors = useMemo(() => seasonSectors(sectors, season, seasonFx.wheel), [sectors, season, seasonFx.wheel]);
   const tz = pub?.campaign?.timezone;
 
   const play = useCallback(async (res: SpinPayload) => {
@@ -173,10 +176,11 @@ export function WheelCard({ title, children }: { title: string; children?: React
   return (
     <>
       <section aria-labelledby="ruleta-h" className="hero">
-        <div className="mx-auto max-w-5xl px-4 pb-14 pt-7 sm:pt-9">
+        {season && seasonFx.decor && <SeasonDecor season={season} />}
+        <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-7 sm:pt-9">
           <h1 id="ruleta-h" className="font-display mx-auto max-w-[17ch] text-balance text-center text-[clamp(1.8rem,7.6vw,3.3rem)] font-extrabold leading-[1.05] text-[color:var(--hero-ink)] md:max-w-[26ch]">{title}</h1>
           <div className="mx-auto px-[1.5%] pb-1 pt-[13%]" style={{ width: 'min(100%, 36rem, max(19rem, calc(100dvh - 21rem)))' }}>
-            <Wheel ref={wheel} sectors={sectors} placeholder={placeholder} highlight={highlight} logoUrl={config.store.logo_url} storeName={config.store.name}
+            <Wheel ref={wheel} sectors={wheelSectors} placeholder={placeholder} highlight={highlight} logoUrl={config.store.logo_url} storeName={config.store.name}
               dimmed={inactive && !pubLoading} active={phase === 'spinning'} />
           </div>
         </div>

@@ -2,22 +2,27 @@ import type { SiteConfig } from './types';
 import { contrastInk } from './wheel';
 import { safeUrl } from './format';
 
-/** Aplica la apariencia publicada como variables CSS (colores, brillos, fondo). */
-export function applyTheme(cfg: SiteConfig, root: HTMLElement = document.documentElement) {
-  const t = cfg.theme;
-  const set = (k: string, v: string) => root.style.setProperty(k, v);
-  set('--c-primary', t.primary);
-  set('--c-secondary', t.secondary);
-  set('--c-accent', t.accent);
-  set('--c-bg', t.background);
-  set('--on-primary', contrastInk(t.primary, 3.4));
-  set('--on-secondary', contrastInk(t.secondary, 3.4));
-  set('--on-accent', contrastInk(t.accent));
-  set('--hero-ink', contrastInk(t.secondary, 4.5));
-  set('--glow', String(Math.max(0, Math.min(100, t.glow)) / 100));
-  set('--motion', String(Math.max(0, Math.min(100, t.motion)) / 100));
+/** Variables CSS de una apariencia (compartidas por el sitio y la vista previa del panel). */
+export function themeVars(t: SiteConfig['theme']): Record<string, string> {
   const bg = safeUrl(t.background_image_url);
-  set('--bg-image', bg ? `url("${bg}")` : 'none');
+  return {
+    '--c-primary': t.primary,
+    '--c-secondary': t.secondary,
+    '--c-accent': t.accent,
+    '--c-bg': t.background,
+    '--on-primary': contrastInk(t.primary, 3.4),
+    '--on-secondary': contrastInk(t.secondary, 3.4),
+    '--on-accent': contrastInk(t.accent),
+    '--hero-ink': contrastInk(t.secondary, 4.5),
+    '--glow': String(Math.max(0, Math.min(100, t.glow)) / 100),
+    '--motion': String(Math.max(0, Math.min(100, t.motion)) / 100),
+    '--bg-image': bg ? `url("${bg}")` : 'none',
+  };
+}
+
+/** Aplica la apariencia (ya con la temporada superpuesta) como variables CSS en la raíz. */
+export function applyTheme(cfg: SiteConfig, root: HTMLElement = document.documentElement) {
+  for (const [k, v] of Object.entries(themeVars(cfg.theme))) root.style.setProperty(k, v);
   document.title = cfg.store.name ? `${cfg.store.name} · Ruleta de premios` : 'Ruleta de premios';
 }
 

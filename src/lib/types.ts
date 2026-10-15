@@ -10,6 +10,11 @@ export interface SiteConfig {
   theme: {
     primary: string; secondary: string; accent: string; background: string;
     background_image_url: string | null; glow: number; motion: number;
+    /** Diseño de temporada (id de lib/seasons). Se aplica sobre los colores de marca. */
+    preset?: string | null;
+    preset_copy?: boolean; preset_wheel?: boolean; preset_decor?: boolean;
+    /** Fechas (YYYY-MM-DD) entre las que está activo; vacío = siempre. */
+    preset_from?: string | null; preset_until?: string | null;
   };
   copy: {
     welcome_title: string; welcome_text: string; button_text: string;

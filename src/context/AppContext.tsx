@@ -5,11 +5,15 @@ import { ApiError, getMyStatus, getPublicState } from '../lib/api';
 import type { MyStatus, PublicState, SiteConfig } from '../lib/types';
 import { DEFAULT_CONFIG } from '../lib/defaultConfig';
 import { applyTheme } from '../lib/theme';
+import { effectiveConfig, type Season, type SeasonFx } from '../lib/seasons';
 import { initSound } from '../lib/sound';
 
 interface AppCtx {
-  /** Configuración publicada (o valores por omisión mientras carga). */
+  /** Configuración publicada (o valores por omisión mientras carga), con la temporada activa ya superpuesta. */
   config: SiteConfig;
+  /** Diseño de temporada activo hoy (null = diseño de marca) y sus opciones. */
+  season: Season | null;
+  seasonFx: SeasonFx;
   pub: PublicState | null;
   pubLoading: boolean;
   pubError: ApiError | null;
@@ -50,7 +54,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPub(s);
       setPubError(null);
       setClockOffset(Date.parse(s.server_time) - Date.now());
-      if (s.config?.theme) applyTheme(s.config);
+      if (s.config?.theme) applyTheme(effectiveConfig(s.config).config);
       if (!soundInit.current && s.config?.sound) {
         soundInit.current = true;
         initSound(s.config.sound.enabled_by_default, s.config.sound.volume);
@@ -135,10 +139,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMe(null);
   }, []);
 
+  const eff = useMemo(() => effectiveConfig(pub?.config ?? DEFAULT_CONFIG), [pub]);
+
   const value = useMemo<AppCtx>(() => ({
-    config: pub?.config ?? DEFAULT_CONFIG, pub, pubLoading, pubError, authReady, session, me, meError, clockOffset,
+    config: eff.config, season: eff.season, seasonFx: eff.fx, pub, pubLoading, pubError, authReady, session, me, meError, clockOffset,
     refreshPublic, refreshMe, signInWithGoogle, signOut,
-  }), [pub, pubLoading, pubError, authReady, session, me, meError, clockOffset, refreshPublic, refreshMe, signInWithGoogle, signOut]);
+  }), [eff, pub, pubLoading, pubError, authReady, session, me, meError, clockOffset, refreshPublic, refreshMe, signInWithGoogle, signOut]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
