@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { CouponStatus } from '../lib/types';
 import { STATUS_LABEL } from '../lib/format';
-import { IconCheck, IconCopy, IconX } from './icons';
+import { IconCheck, IconChevronLeft, IconChevronRight, IconCopy, IconX } from './icons';
 import { useToast } from '../context/Toast';
 
 export function Spinner({ label = 'Cargando…' }: { label?: string }) {
@@ -144,9 +144,9 @@ export function Pagination({ total, offset, limit, onChange }: { total: number; 
   const pages = Math.ceil(total / limit);
   return (
     <nav className="mt-4 flex items-center justify-between gap-3" aria-label="Paginación">
-      <button className="btn btn-ghost btn-sm" disabled={offset <= 0} onClick={() => onChange(Math.max(0, offset - limit))}>← Anterior</button>
+      <button className="btn btn-ghost btn-sm" disabled={offset <= 0} onClick={() => onChange(Math.max(0, offset - limit))}><IconChevronLeft width={16} height={16} /> Anterior</button>
       <span className="text-sm text-dim" aria-live="polite">Página {page} de {pages} · {total} en total</span>
-      <button className="btn btn-ghost btn-sm" disabled={offset + limit >= total} onClick={() => onChange(offset + limit)}>Siguiente →</button>
+      <button className="btn btn-ghost btn-sm" disabled={offset + limit >= total} onClick={() => onChange(offset + limit)}>Siguiente <IconChevronRight width={16} height={16} /></button>
     </nav>
   );
 }

@@ -117,6 +117,10 @@
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: radial-gradient(60% 46% at 50% 64%, rgb(255 255 255 / calc(.28 * var(--glow) + .06)), transparent 70%);
 }
+/* Tamaño de la ruleta: en celular cabe junto al botón; en escritorio crece para ser la protagonista */
+.wheel-box { width: min(100%, 36rem, max(19rem, calc(100dvh - 21rem))); }
+@media (min-width: 1024px) { .wheel-box { width: min(100%, 50rem, max(30rem, calc(100dvh - 16rem))); } }
+
 /* Decoración de temporada: figuras flotantes/cayendo detrás del título y la ruleta */
 .season-decor { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; container-type: size; }
 .sd {

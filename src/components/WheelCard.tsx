@@ -177,9 +177,9 @@ export function WheelCard({ title, children }: { title: string; children?: React
     <>
       <section aria-labelledby="ruleta-h" className="hero" style={seasonVars(season)}>
         {season && seasonFx.decor && <SeasonDecor season={season} />}
-        <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-7 sm:pt-9">
+        <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-7 sm:pt-9 lg:pb-10 lg:pt-6">
           <h1 id="ruleta-h" className="font-display mx-auto max-w-[17ch] text-balance text-center text-[clamp(1.8rem,7.6vw,3.3rem)] font-extrabold leading-[1.05] text-[color:var(--hero-ink)] md:max-w-[26ch]">{title}</h1>
-          <div className="mx-auto px-[1.5%] pb-1 pt-[13%]" style={{ width: 'min(100%, 36rem, max(19rem, calc(100dvh - 21rem)))' }}>
+          <div className="wheel-box mx-auto px-[1.5%] pb-1 pt-[13%] lg:pt-[11%]">
             <Wheel ref={wheel} sectors={wheelSectors} placeholder={placeholder} highlight={highlight} logoUrl={config.store.logo_url} storeName={config.store.name}
               dimmed={inactive && !pubLoading} active={phase === 'spinning'} />
           </div>

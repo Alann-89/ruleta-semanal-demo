@@ -9,6 +9,7 @@ import { Wheel } from '../components/Wheel';
 import { SeasonDecor, seasonVars } from '../components/SeasonDecor';
 import { SEASONS, effectiveConfig, resolveSeason, seasonById, seasonSectors, suggestedRange, suggestions, ymd, type Season } from '../lib/seasons';
 import { themeVars } from '../lib/theme';
+import { IconCheck, IconX } from '../components/icons';
 import { useToast } from '../context/Toast';
 import { useApp } from '../context/AppContext';
 
@@ -78,7 +79,7 @@ function Preview({ cfg: raw, sectors: baseSectors, device }: { cfg: SiteConfig; 
           {season && fx.decor && <SeasonDecor season={season} />}
           <div className={`relative mx-auto px-4 pb-12 pt-6 ${device === 'desktop' ? 'max-w-2xl' : ''}`}>
             <h1 className="font-display mx-auto max-w-[17ch] text-center text-[1.7rem] font-extrabold leading-[1.05]" style={{ color: 'var(--hero-ink)' }}>{cfg.copy.welcome_title}</h1>
-            <div className="mx-auto max-w-[19rem] px-[1.5%] pb-1 pt-[13%]"><Wheel sectors={sectors} placeholder={sectors.length < 2} logoUrl={cfg.store.logo_url} storeName={cfg.store.name} /></div>
+            <div className={`mx-auto px-[1.5%] pb-1 pt-[13%] ${device === 'desktop' ? 'max-w-[27rem]' : 'max-w-[19rem]'}`}><Wheel sectors={sectors} placeholder={sectors.length < 2} logoUrl={cfg.store.logo_url} storeName={cfg.store.name} /></div>
           </div>
         </section>
         <div className="sheet">
@@ -161,7 +162,7 @@ function SeasonPicker({ theme, onChange }: { theme: SiteConfig['theme']; onChang
                 <span className="absolute left-2 top-1 text-lg drop-shadow">{s?.emoji ?? '🏠'}</span>
                 <span className="absolute bottom-1 right-2 text-lg opacity-90 drop-shadow">{s?.emoji ?? ''}</span>
               </span>
-              <span className="flex items-center gap-1.5 text-sm font-semibold"><span aria-hidden="true">{s?.emoji ?? '🏠'}</span>{s?.name ?? 'Diseño de marca'}{on && <span className="ml-auto text-xs font-bold" style={{ color: '#a8340e' }}>✓</span>}</span>
+              <span className="flex items-center gap-1.5 text-sm font-semibold"><span aria-hidden="true">{s?.emoji ?? '🏠'}</span>{s?.name ?? 'Diseño de marca'}{on && <IconCheck className="ml-auto" width={16} height={16} style={{ color: '#a8340e' }} />}</span>
               <span className="block text-xs text-dim">{s?.dates ?? 'Sin temporada'}</span>
             </button>
           );
@@ -267,7 +268,7 @@ export default function AppearancePage() {
         </div>
       </div>
       <p className="mb-3 text-sm" aria-live="polite">
-        {dirty ? <span className="font-semibold text-warn">Cambios sin guardar.</span> : unpublished ? <span className="font-semibold text-warn">Borrador guardado, pendiente de publicar.</span> : <span className="text-ok">Todo publicado ✓</span>}
+        {dirty ? <span className="font-semibold text-warn">Cambios sin guardar.</span> : unpublished ? <span className="font-semibold text-warn">Borrador guardado, pendiente de publicar.</span> : <span className="inline-flex items-center gap-1 text-ok"><IconCheck width={16} height={16} /> Todo publicado</span>}
       </p>
       {errors.length > 0 && <Alert kind="error" className="mb-4"><strong>Corrige antes de publicar:</strong><ul className="mt-1 list-disc space-y-1 pl-5">{errors.map((e, i) => <li key={i}>{e}</li>)}</ul></Alert>}
 
@@ -329,7 +330,7 @@ export default function AppearancePage() {
                 <div key={i} className="flex gap-2">
                   <input aria-label={`Días del renglón ${i + 1}`} className="input" placeholder="Lunes a viernes" value={h.days} maxLength={40} onChange={(e) => setHours((l) => l.map((x, j) => (j === i ? { ...x, days: e.target.value } : x)))} />
                   <input aria-label={`Horario del renglón ${i + 1}`} className="input" placeholder="9:00 a 20:00" value={h.hours} maxLength={40} onChange={(e) => setHours((l) => l.map((x, j) => (j === i ? { ...x, hours: e.target.value } : x)))} />
-                  <button type="button" className="btn btn-ghost" aria-label={`Quitar renglón ${i + 1}`} onClick={() => setHours((l) => l.filter((_, j) => j !== i))}>✕</button>
+                  <button type="button" className="btn btn-ghost" aria-label={`Quitar renglón ${i + 1}`} onClick={() => setHours((l) => l.filter((_, j) => j !== i))}><IconX width={18} height={18} /></button>
                 </div>
               ))}
               {draft.contact.hours.length < 10 && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setHours((l) => [...l, { days: '', hours: '' }])}>+ Agregar renglón</button>}

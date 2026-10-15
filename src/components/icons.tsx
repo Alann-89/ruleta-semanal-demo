@@ -12,6 +12,10 @@ export const IconVolume = (p: P) => <svg {...base} {...p}><path d="M11 5L6 9H3v6
 export const IconVolumeOff = (p: P) => <svg {...base} {...p}><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M22 9l-6 6M16 9l6 6" /></svg>;
 export const IconCopy = (p: P) => <svg {...base} {...p}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>;
 export const IconCheck = (p: P) => <svg {...base} {...p}><path d="M5 12.5l4.5 4.5L19 7" /></svg>;
+export const IconArrowUp = (p: P) => <svg {...base} {...p}><path d="M12 19V5M6 11l6-6 6 6" /></svg>;
+export const IconArrowDown = (p: P) => <svg {...base} {...p}><path d="M12 5v14M6 13l6 6 6-6" /></svg>;
+export const IconChevronLeft = (p: P) => <svg {...base} {...p}><path d="M15 5l-7 7 7 7" /></svg>;
+export const IconChevronRight = (p: P) => <svg {...base} {...p}><path d="M9 5l7 7-7 7" /></svg>;
 export const IconX = (p: P) => <svg {...base} {...p}><path d="M6 6l12 12M18 6L6 18" /></svg>;
 export const IconScan = (p: P) => <svg {...base} {...p}><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" /><path d="M4 12h16" /></svg>;
 export const IconChart = (p: P) => <svg {...base} {...p}><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" /></svg>;

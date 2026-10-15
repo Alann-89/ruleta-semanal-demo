@@ -5,6 +5,7 @@ import { fmtMoney, fmtPct, KIND_LABEL, safeUrl, uuid } from '../lib/format';
 import { uploadImage } from '../lib/media';
 import { Alert, Field, Modal, PageLoader, Spinner } from '../components/ui';
 import { Wheel, type WheelHandle } from '../components/Wheel';
+import { IconArrowDown, IconArrowUp, IconCheck } from '../components/icons';
 import { useToast } from '../context/Toast';
 import { useApp } from '../context/AppContext';
 import { sfx, unlockAudio } from '../lib/sound';
@@ -135,8 +136,8 @@ function PrizeEditor({ it, onChange, onMove, onArchive, canUp, canDown }: {
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
         <div className="flex gap-2">
-          <button type="button" className="btn btn-ghost btn-sm" disabled={!canUp} onClick={() => onMove(-1)} aria-label="Subir en el orden de la ruleta">↑ Subir</button>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={!canDown} onClick={() => onMove(1)} aria-label="Bajar en el orden de la ruleta">↓ Bajar</button>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={!canUp} onClick={() => onMove(-1)} aria-label="Subir en el orden de la ruleta"><IconArrowUp width={16} height={16} /> Subir</button>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={!canDown} onClick={() => onMove(1)} aria-label="Bajar en el orden de la ruleta"><IconArrowDown width={16} height={16} /> Bajar</button>
         </div>
         <button type="button" className="btn btn-ghost btn-sm text-bad" onClick={onArchive}>Archivar</button>
       </div>
@@ -285,7 +286,7 @@ export default function PrizesPage() {
       <div className={`card sticky top-14 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${sumOk ? 'border-ok' : 'border-bad'}`} role="status" aria-live="polite">
         <div>
           <p className="text-sm text-dim">Suma de probabilidades (resultados activos)</p>
-          <p className={`font-display text-2xl font-semibold ${sumOk ? 'text-ok' : 'text-bad'}`}>{fmtPct(sum, 3)} {sumOk ? '✓' : `· faltan ${fmtPct(100 - sum, 3)}`}</p>
+          <p className={`font-display text-2xl font-semibold ${sumOk ? 'text-ok' : 'text-bad'}`}><span className="inline-flex items-center gap-2">{fmtPct(sum, 3)} {sumOk ? <IconCheck width={22} height={22} aria-label="Suma correcta" /> : `· faltan ${fmtPct(100 - sum, 3)}`}</span></p>
         </div>
         <div className="flex gap-2">
           {!sumOk && <button className="btn btn-ghost btn-sm" onClick={balance}>Completar con «Sin premio»</button>}
