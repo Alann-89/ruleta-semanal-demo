@@ -8,6 +8,9 @@ export type ShapeKind =
   | 'heart' | 'sparkle' | 'star' | 'snowflake' | 'confetti' | 'dot' | 'ribbon' | 'flower' | 'bat' | 'pumpkin'
   | 'skull' | 'balloon' | 'sun' | 'pencil' | 'gift' | 'tag' | 'crown' | 'tie';
 
+export type PatternKind = 'dots' | 'stripes' | 'stars' | 'hearts' | 'flowers' | 'diamonds' | 'grid';
+export type SceneKind = 'moon' | 'cobweb' | 'fireworks' | 'snowhill' | 'twinkle' | 'bigsun';
+
 export interface MotifItem { k: ShapeKind; a: string; b?: string; c?: string }
 
 type Md = [month: number, day: number];
@@ -27,6 +30,10 @@ export interface Season {
   motif: MotifItem[];
   /** Si es true, las figuras caen (nieve, confeti) en lugar de flotar. */
   fall?: boolean;
+  /** Trama sutil sobre el tejado de la cabecera. */
+  pattern: PatternKind;
+  /** Elementos grandes de escena (luna, telarañas, fuegos artificiales…). */
+  scene?: SceneKind[];
   /** Banderines (papel picado) en la parte superior. */
   bunting?: string[];
   copy: {
@@ -38,6 +45,7 @@ export interface Season {
 export const SEASONS: Season[] = [
   {
     id: 'reyes', name: 'Día de Reyes', emoji: '👑', dates: '1 – 6 de enero', window: { from: [1, 1], to: [1, 6] },
+    pattern: 'stars', scene: ['twinkle'],
     colors: { primary: '#7c3aed', secondary: '#3b1a78', accent: '#ffd23f', background: '#faf5ff' },
     wheel: ['#7c3aed', '#ffffff', '#ffd23f', '#3b1a78', '#e5d5ff'],
     motif: [{ k: 'crown', a: '#ffd23f', b: '#ff5d8f', c: '#7c3aed' }, { k: 'star', a: '#ffe58a' }, { k: 'sparkle', a: '#ffffff' }, { k: 'gift', a: '#ffd23f', b: '#ffffff' }],
@@ -49,6 +57,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'san_valentin', name: 'San Valentín', emoji: '💝', dates: '1 – 14 de febrero', window: { from: [2, 1], to: [2, 14] },
+    pattern: 'hearts',
     colors: { primary: '#e0245e', secondary: '#8f0f3a', accent: '#ffb3c7', background: '#fff5f7' },
     wheel: ['#e0245e', '#ffffff', '#ff8fb1', '#8f0f3a', '#ffe0e8'],
     motif: [{ k: 'heart', a: '#ffffff' }, { k: 'heart', a: '#ffb3c7' }, { k: 'sparkle', a: '#ffffff' }, { k: 'heart', a: '#ff5c8a' }],
@@ -60,6 +69,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'dia_del_nino', name: 'Día del Niño', emoji: '🎈', dates: '15 – 30 de abril', window: { from: [4, 15], to: [4, 30] },
+    pattern: 'dots', scene: ['fireworks'],
     colors: { primary: '#ff7a1a', secondary: '#3a35b8', accent: '#ffd23f', background: '#fffaf0' },
     wheel: ['#ff7a1a', '#ffffff', '#3bb6ff', '#3a35b8', '#ffd23f', '#ff5d8f'],
     motif: [{ k: 'balloon', a: '#ff5d8f' }, { k: 'confetti', a: '#ffd23f' }, { k: 'balloon', a: '#3bb6ff' }, { k: 'star', a: '#ffd23f' }, { k: 'balloon', a: '#ffd23f' }],
@@ -71,6 +81,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'dia_de_las_madres', name: 'Día de las Madres', emoji: '🌸', dates: '1 – 10 de mayo', window: { from: [5, 1], to: [5, 10] },
+    pattern: 'flowers',
     colors: { primary: '#d6458f', secondary: '#7a1f55', accent: '#ffd166', background: '#fff6fb' },
     wheel: ['#d6458f', '#ffffff', '#f7a8d0', '#7a1f55', '#ffe3f1'],
     motif: [{ k: 'flower', a: '#ffffff', b: '#ffd166' }, { k: 'heart', a: '#ffd1e8' }, { k: 'flower', a: '#ffc2e0', b: '#ffffff' }, { k: 'sparkle', a: '#ffffff' }],
@@ -82,6 +93,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'dia_del_padre', name: 'Día del Padre', emoji: '👔', dates: '1 – 21 de junio (aprox.)', window: { from: [6, 1], to: [6, 21] },
+    pattern: 'stripes',
     colors: { primary: '#0e7490', secondary: '#083344', accent: '#fbbf24', background: '#f0fbff' },
     wheel: ['#0e7490', '#ffffff', '#7dd3e8', '#083344', '#d6f3fa'],
     motif: [{ k: 'tie', a: '#fbbf24', b: '#ffffff' }, { k: 'star', a: '#fbbf24' }, { k: 'tie', a: '#ffffff', b: '#7dd3e8' }, { k: 'sparkle', a: '#ffffff' }],
@@ -93,6 +105,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'verano', name: 'Vacaciones de verano', emoji: '☀️', dates: '5 de julio – 20 de agosto', window: { from: [7, 5], to: [8, 20] },
+    pattern: 'dots', scene: ['bigsun'],
     colors: { primary: '#ff8a00', secondary: '#0b6bcb', accent: '#ffe066', background: '#f2fbff' },
     wheel: ['#ff8a00', '#ffffff', '#19b5fe', '#0b6bcb', '#ffe066', '#ffd9a3'],
     motif: [{ k: 'sun', a: '#ffe066', b: '#ffffff' }, { k: 'dot', a: '#ffffff' }, { k: 'balloon', a: '#19b5fe' }, { k: 'sparkle', a: '#ffffff' }],
@@ -104,6 +117,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'regreso_a_clases', name: 'Regreso a clases', emoji: '✏️', dates: '10 de agosto – 3 de septiembre', window: { from: [8, 10], to: [9, 3] },
+    pattern: 'grid',
     colors: { primary: '#2f6df6', secondary: '#14307a', accent: '#ffcf3d', background: '#f4f8ff' },
     wheel: ['#2f6df6', '#ffffff', '#ffcf3d', '#14307a', '#cfe0ff'],
     motif: [{ k: 'pencil', a: '#ffcf3d', b: '#f6d9a8', c: '#ff7d9c' }, { k: 'star', a: '#ffcf3d' }, { k: 'pencil', a: '#ffffff', b: '#f6d9a8', c: '#ff7d9c' }, { k: 'sparkle', a: '#ffffff' }],
@@ -115,6 +129,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'independencia', name: 'Independencia de México', emoji: '🇲🇽', dates: '5 – 16 de septiembre', window: { from: [9, 5], to: [9, 16] },
+    pattern: 'stripes', scene: ['fireworks'],
     colors: { primary: '#c8102e', secondary: '#0a4d31', accent: '#f2c14e', background: '#fffaf0' },
     wheel: ['#0b7a4b', '#ffffff', '#c8102e'],
     motif: [{ k: 'star', a: '#f2c14e' }, { k: 'confetti', a: '#ffffff' }, { k: 'sparkle', a: '#f2c14e' }, { k: 'dot', a: '#ffffff' }],
@@ -127,6 +142,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'halloween', name: 'Halloween', emoji: '🎃', dates: '15 – 31 de octubre', window: { from: [10, 15], to: [10, 31] },
+    pattern: 'diamonds', scene: ['moon', 'cobweb', 'twinkle'],
     colors: { primary: '#f26a0f', secondary: '#2a0d45', accent: '#ffb347', background: '#fdf6ff' },
     wheel: ['#f26a0f', '#ffffff', '#4b1d78', '#ffd8b0', '#1c0b30', '#ff9a3d'],
     motif: [{ k: 'bat', a: '#1c0b30' }, { k: 'pumpkin', a: '#ff8a1f', b: '#2f9e44', c: '#2a0d45' }, { k: 'bat', a: '#2a0d45' }, { k: 'sparkle', a: '#ffd8b0' }, { k: 'pumpkin', a: '#ffb347', b: '#7a4b12', c: '#2a0d45' }],
@@ -138,6 +154,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'dia_de_muertos', name: 'Día de Muertos', emoji: '💀', dates: '25 de octubre – 2 de noviembre', window: { from: [10, 25], to: [11, 2] },
+    pattern: 'flowers', scene: ['twinkle'],
     colors: { primary: '#f58a07', secondary: '#5c1a6b', accent: '#ff4fa3', background: '#fff7ea' },
     wheel: ['#f58a07', '#ffffff', '#d6338a', '#5c1a6b', '#ffd166', '#fff0cf'],
     motif: [{ k: 'flower', a: '#ffc233', b: '#f58a07' }, { k: 'skull', a: '#ffffff', b: '#5c1a6b', c: '#ff4fa3' }, { k: 'flower', a: '#ff9a1f', b: '#ffe08a' }, { k: 'sparkle', a: '#ffe08a' }],
@@ -150,6 +167,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'buen_fin', name: 'Buen Fin / Ofertas', emoji: '🏷️', dates: '10 – 23 de noviembre (aprox.)', window: { from: [11, 10], to: [11, 23] },
+    pattern: 'stripes', scene: ['twinkle'],
     colors: { primary: '#e11d2f', secondary: '#5a0711', accent: '#ffd60a', background: '#fff8e6' },
     wheel: ['#e11d2f', '#ffffff', '#ffd60a', '#5a0711', '#ffe9a8'],
     motif: [{ k: 'tag', a: '#ffd60a', b: '#5a0711' }, { k: 'sparkle', a: '#ffffff' }, { k: 'tag', a: '#ffffff', b: '#e11d2f' }, { k: 'star', a: '#ffd60a' }],
@@ -161,6 +179,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'navidad', name: 'Navidad', emoji: '🎄', dates: '1 – 25 de diciembre', window: { from: [12, 1], to: [12, 25] },
+    pattern: 'dots', scene: ['snowhill', 'twinkle'],
     colors: { primary: '#c8102e', secondary: '#7a0c1e', accent: '#ffd36b', background: '#fff7f5' },
     wheel: ['#c8102e', '#ffffff', '#e8b84a', '#7a0c1e', '#f6e7c8'],
     motif: [{ k: 'snowflake', a: '#ffffff' }, { k: 'gift', a: '#ffd36b', b: '#ffffff' }, { k: 'star', a: '#ffd36b' }, { k: 'snowflake', a: '#ffe9ef' }, { k: 'dot', a: '#ffffff' }],
@@ -173,6 +192,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'ano_nuevo', name: 'Año Nuevo', emoji: '🎆', dates: '26 de diciembre – 1 de enero', window: { from: [12, 26], to: [1, 1] },
+    pattern: 'stars', scene: ['fireworks', 'twinkle'],
     colors: { primary: '#d4a017', secondary: '#111827', accent: '#ffe27a', background: '#fbf8ef' },
     wheel: ['#111827', '#f0c24b', '#ffffff', '#7a5c08', '#2b3548', '#fff0b8'],
     motif: [{ k: 'confetti', a: '#ffe27a' }, { k: 'sparkle', a: '#ffffff' }, { k: 'ribbon', a: '#ffffff' }, { k: 'star', a: '#ffe27a' }, { k: 'dot', a: '#111827' }],
@@ -185,6 +205,7 @@ export const SEASONS: Season[] = [
   },
   {
     id: 'aniversario', name: 'Aniversario de la tienda', emoji: '🎉', dates: 'Cuando tú quieras',
+    pattern: 'dots', scene: ['fireworks'],
     colors: { primary: '#ec5b1f', secondary: '#3b1204', accent: '#ffd166', background: '#fff8f1' },
     wheel: ['#ec5b1f', '#ffffff', '#ffd166', '#7a2208', '#ffe3cf'],
     motif: [{ k: 'balloon', a: '#ffd166' }, { k: 'confetti', a: '#ffffff' }, { k: 'sparkle', a: '#ffffff' }, { k: 'balloon', a: '#ffffff' }, { k: 'ribbon', a: '#ffd166' }],

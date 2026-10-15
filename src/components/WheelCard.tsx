@@ -6,7 +6,7 @@ import type { Sector, SpinPayload } from '../lib/types';
 import { fmtDateTime, relativeTo, uuid } from '../lib/format';
 import { sfx, unlockAudio } from '../lib/sound';
 import { Wheel, type WheelHandle } from './Wheel';
-import { SeasonDecor } from './SeasonDecor';
+import { SeasonDecor, seasonVars } from './SeasonDecor';
 import { seasonSectors } from '../lib/seasons';
 import { ResultModal } from './ResultModal';
 import { Alert, Field } from './ui';
@@ -175,7 +175,7 @@ export function WheelCard({ title, children }: { title: string; children?: React
 
   return (
     <>
-      <section aria-labelledby="ruleta-h" className="hero">
+      <section aria-labelledby="ruleta-h" className="hero" style={seasonVars(season)}>
         {season && seasonFx.decor && <SeasonDecor season={season} />}
         <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-7 sm:pt-9">
           <h1 id="ruleta-h" className="font-display mx-auto max-w-[17ch] text-balance text-center text-[clamp(1.8rem,7.6vw,3.3rem)] font-extrabold leading-[1.05] text-[color:var(--hero-ink)] md:max-w-[26ch]">{title}</h1>

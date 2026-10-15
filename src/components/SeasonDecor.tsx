@@ -1,18 +1,22 @@
-import type { CSSProperties } from 'react';
-import type { MotifItem, Season, ShapeKind } from '../lib/seasons';
+import type { CSSProperties, ReactNode } from 'react';
+import type { MotifItem, PatternKind, Season, ShapeKind } from '../lib/seasons';
 
 /** Posiciones fijas (en % del encabezado) para que la decoración sea estable y no tape el título. */
-const SLOTS: Array<{ x: number; y: number; s: number; r: number }> = [
-  { x: 6, y: 13, s: 2.7, r: -14 }, { x: 91, y: 10, s: 3, r: 12 }, { x: 19, y: 4, s: 1.7, r: 20 }, { x: 79, y: 5, s: 1.9, r: -18 },
-  { x: 3, y: 38, s: 2.8, r: 10 }, { x: 94, y: 35, s: 2.6, r: -12 }, { x: 9, y: 62, s: 3.2, r: -8 }, { x: 90, y: 60, s: 3, r: 16 },
-  { x: 4, y: 83, s: 2.4, r: 14 }, { x: 94, y: 84, s: 2.8, r: -10 }, { x: 23, y: 90, s: 1.9, r: 8 }, { x: 77, y: 92, s: 2.1, r: -14 },
-  { x: 30, y: 15, s: 1.4, r: 24 }, { x: 68, y: 14, s: 1.5, r: -22 }, { x: 14, y: 48, s: 1.6, r: -6 }, { x: 85, y: 47, s: 1.6, r: 8 },
+type Slot = { x: number; y: number; s: number; r: number; far?: boolean };
+const SLOTS: Slot[] = [
+  { x: 4, y: 14, s: 3.4, r: -14 }, { x: 89, y: 12, s: 3.8, r: 12 }, { x: 2, y: 40, s: 3.6, r: 10 }, { x: 92, y: 37, s: 3.4, r: -12 },
+  { x: 7, y: 64, s: 4.2, r: -8 }, { x: 88, y: 62, s: 4, r: 16 }, { x: 2, y: 85, s: 3.2, r: 14 }, { x: 92, y: 86, s: 3.6, r: -10 },
+  { x: 20, y: 6, s: 2.2, r: 20 }, { x: 77, y: 7, s: 2.4, r: -18 }, { x: 24, y: 90, s: 2.6, r: 8 }, { x: 74, y: 92, s: 2.8, r: -14 },
+  { x: 15, y: 50, s: 2.2, r: -6 }, { x: 83, y: 50, s: 2.2, r: 8 },
+  { x: 31, y: 16, s: 1.5, r: 24, far: true }, { x: 66, y: 15, s: 1.6, r: -22, far: true }, { x: 11, y: 27, s: 1.4, r: 10, far: true },
+  { x: 86, y: 26, s: 1.5, r: -8, far: true }, { x: 12, y: 76, s: 1.6, r: 14, far: true }, { x: 85, y: 75, s: 1.6, r: -16, far: true },
+  { x: 36, y: 94, s: 1.3, r: 6, far: true }, { x: 63, y: 95, s: 1.4, r: -6, far: true },
 ];
 
 function Shape({ k, a, b, c }: MotifItem) {
   const b2 = b ?? a;
   const c2 = c ?? '#000';
-  const shapes: Record<ShapeKind, React.ReactNode> = {
+  const shapes: Record<ShapeKind, ReactNode> = {
     heart: (<>
       <path d="M24 43C10 32 4 24 4 16.5a10.5 10.5 0 0 1 20-4.4 10.5 10.5 0 0 1 20 4.4C44 24 38 32 24 43Z" fill={a} />
       <ellipse cx="14" cy="14" rx="4.5" ry="3" fill="#fff" opacity=".4" transform="rotate(-30 14 14)" />
@@ -118,11 +122,131 @@ function Bunting({ colors }: { colors: string[] }) {
   );
 }
 
+// ---------------------------------------------------------------------
+// Tramas, escenas y capas grandes
+// ---------------------------------------------------------------------
+const enc = (svg: string) => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+const NS = 'xmlns="http://www.w3.org/2000/svg"';
+const PATTERNS: Record<PatternKind, { size: number; svg: string }> = {
+  dots: { size: 30, svg: `<svg ${NS} width="30" height="30"><circle cx="15" cy="15" r="2.6" fill="#fff" fill-opacity=".16"/></svg>` },
+  stripes: { size: 34, svg: `<svg ${NS} width="34" height="34"><path d="M-4 38 38-4M-4 21 21-4M13 38 38 13" stroke="#fff" stroke-opacity=".13" stroke-width="7"/></svg>` },
+  stars: { size: 46, svg: `<svg ${NS} width="46" height="46"><path d="M23 14l2.2 5.4 5.8.5-4.4 3.8 1.4 5.6-5-3.1-5 3.1 1.4-5.6-4.4-3.8 5.8-.5Z" fill="#fff" fill-opacity=".18"/></svg>` },
+  hearts: { size: 44, svg: `<svg ${NS} width="44" height="44"><path d="M22 31c-6-4.6-8.5-8-8.5-11a4.7 4.7 0 0 1 8.5-2.8A4.7 4.7 0 0 1 30.500 20c0 3-2.500 6.400-8.500 11Z" fill="#fff" fill-opacity=".17"/></svg>` },
+  flowers: {
+    size: 48,
+    svg: `<svg ${NS} width="48" height="48"><g fill="#fff" fill-opacity=".17">${[0, 72, 144, 216, 288].map((r) => `<ellipse cx="24" cy="17" rx="3.6" ry="5.5" transform="rotate(${r} 24 24)"/>`).join('')}<circle cx="24" cy="24" r="2.8"/></g></svg>`,
+  },
+  diamonds: { size: 36, svg: `<svg ${NS} width="36" height="36"><path d="M18 8l8 10-8 10-8-10Z" fill="none" stroke="#fff" stroke-opacity=".17" stroke-width="2"/></svg>` },
+  grid: { size: 32, svg: `<svg ${NS} width="32" height="32"><path d="M0 .5h32M.5 0v32" stroke="#fff" stroke-opacity=".16" stroke-width="1.5"/></svg>` },
+};
+
+function Cobweb({ side }: { side: 'l' | 'r' }) {
+  const spokes = [0, 22.5, 45, 67.5, 90];
+  const pt = (r: number, a: number): [number, number] => [r * Math.cos((a * Math.PI) / 180), r * Math.sin((a * Math.PI) / 180)];
+  return (
+    <svg className={`sd-scene sd-cobweb sd-cobweb-${side}`} viewBox="0 0 110 110" focusable="false">
+      <g fill="none" stroke="#fff" strokeOpacity=".5" strokeWidth="1.3" strokeLinecap="round">
+        {spokes.map((a) => { const [x, y] = pt(106, a); return <path key={a} d={`M0 0L${x} ${y}`} />; })}
+        {[26, 50, 74, 98].map((r) => {
+          const [sx, sy] = pt(r, spokes[0]);
+          const d = spokes.slice(1).map((a, i) => {
+            const [x1, y1] = pt(r, a);
+            const [cx, cy] = pt(r * 0.86, (a + spokes[i]) / 2);
+            return `Q${cx} ${cy} ${x1} ${y1}`;
+          }).join('');
+          return <path key={r} d={`M${sx} ${sy}${d}`} />;
+        })}
+      </g>
+      {side === 'l' && (
+        <g className="sd-spider">
+          <path d="M70 0V34" stroke="#fff" strokeOpacity=".6" strokeWidth="1" />
+          <g stroke="#14081f" strokeWidth="1.6" strokeLinecap="round" fill="none"><path d="M64 38l-8-5M64 42l-9 1M65 46l-8 6M76 38l8-5M76 42l9 1M75 46l8 6" /></g>
+          <ellipse cx="70" cy="42" rx="6.5" ry="7.5" fill="#14081f" /><circle cx="67.8" cy="40" r="1.3" fill="#ff5d5d" /><circle cx="72.2" cy="40" r="1.3" fill="#ff5d5d" />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function Moon() {
+  return (
+    <svg className="sd-scene sd-moon" viewBox="0 0 100 100" focusable="false">
+      <circle cx="50" cy="50" r="40" fill="#fff1b8" />
+      <circle cx="36" cy="38" r="8" fill="#f2dc8c" /><circle cx="62" cy="58" r="10.5" fill="#f2dc8c" /><circle cx="44" cy="68" r="5" fill="#f2dc8c" /><circle cx="64" cy="31" r="4.5" fill="#f2dc8c" />
+      <path d="M50 10a40 40 0 0 0 0 80 30 40 0 0 1 0-80Z" fill="#fff" opacity=".35" />
+    </svg>
+  );
+}
+
+function BigSun() {
+  return (
+    <svg className="sd-scene sd-bigsun" viewBox="0 0 100 100" focusable="false">
+      <g className="sd-sunrays" fill="#ffe066">{Array.from({ length: 14 }, (_, i) => <path key={i} d="M50 2l5 16h-10Z" transform={`rotate(${i * (360 / 14)} 50 50)`} />)}</g>
+      <circle cx="50" cy="50" r="24" fill="#ffd23f" /><circle cx="43" cy="43" r="8" fill="#fff" opacity=".4" />
+    </svg>
+  );
+}
+
+function Burst({ colors, style }: { colors: string[]; style: CSSProperties }) {
+  return (
+    <svg className="sd-scene sd-fw" viewBox="0 0 100 100" style={style} focusable="false">
+      {Array.from({ length: 14 }, (_, i) => {
+        const c = colors[i % colors.length];
+        return (
+          <g key={i} transform={`rotate(${(i * 360) / 14} 50 50)`}>
+            <path d="M50 30V14" stroke={c} strokeWidth="3.4" strokeLinecap="round" /><circle cx="50" cy="8" r="3.4" fill={c} />
+          </g>
+        );
+      })}
+      <circle cx="50" cy="50" r="4" fill="#fff" />
+    </svg>
+  );
+}
+
+function SnowHill() {
+  return (
+    <svg className="sd-scene sd-snowhill" viewBox="0 0 400 70" preserveAspectRatio="none" focusable="false">
+      <path d="M0 40C60 14 120 14 190 34S330 54 400 22V70H0Z" fill="#fff" opacity=".55" />
+      <path d="M0 52C70 30 150 34 220 48S340 60 400 42V70H0Z" fill="#fff" />
+    </svg>
+  );
+}
+
+const TWINKLES: Array<[number, number, number]> = [[9, 7, 1.1], [23, 14, 0.8], [14, 24, 0.9], [34, 5, 0.7], [88, 6, 1], [75, 11, 0.8], [94, 21, 0.9], [66, 4, 0.7], [4, 30, 0.7], [97, 33, 0.8]];
+
+/** Variables CSS que dependen de la temporada (focos de colores). Se aplican al encabezado. */
+export function seasonVars(season: Season | null): CSSProperties | undefined {
+  if (!season) return undefined;
+  return { '--bulb-1': season.colors.accent, '--bulb-2': season.colors.secondary } as CSSProperties;
+}
+
 /** Capa decorativa del encabezado. No es interactiva ni se anuncia a lectores de pantalla. */
 export function SeasonDecor({ season }: { season: Season }) {
-  const slots = season.bunting ? SLOTS.filter((s) => s.y > 9 || s.x < 12 || s.x > 88) : SLOTS;
+  const slots = season.bunting ? SLOTS.filter((s) => s.y > 12 || s.x < 12 || s.x > 88) : SLOTS;
+  const scene = season.scene ?? [];
+  const pat = PATTERNS[season.pattern];
+  const fw = [season.colors.accent, '#ffffff', season.wheel[2] ?? season.colors.primary];
   return (
     <div className="season-decor" aria-hidden="true">
+      <div className="sd-rays" />
+      <div className="sd-pattern" style={{ backgroundImage: enc(pat.svg), backgroundSize: `${pat.size}px` }} />
+      {scene.includes('twinkle') && TWINKLES.map(([x, y, z], i) => (
+        <svg key={i} className="sd-scene sd-twinkle" viewBox="0 0 48 48" focusable="false"
+          style={{ left: `${x}%`, top: `${y}%`, width: `${z * 1.4}rem`, '--d': `${-i * 0.55}s` } as CSSProperties}>
+          <path d="M24 2C26 17 31 22 46 24 31 26 26 31 24 46 22 31 17 26 2 24 17 22 22 17 24 2Z" fill={i % 3 === 0 ? season.colors.accent : '#fff'} />
+        </svg>
+      ))}
+      {scene.includes('moon') && <Moon />}
+      {scene.includes('bigsun') && <BigSun />}
+      {scene.includes('cobweb') && <><Cobweb side="l" /><Cobweb side="r" /></>}
+      {scene.includes('fireworks') && (
+        <>
+          <Burst colors={fw} style={{ left: '3%', top: '8%', '--d': '0s' } as CSSProperties} />
+          <Burst colors={[fw[1], fw[0], fw[2]]} style={{ right: '4%', top: '4%', '--d': '-1.4s' } as CSSProperties} />
+          <Burst colors={[fw[2], fw[1], fw[0]]} style={{ left: '14%', top: '30%', width: '3.4rem', '--d': '-2.3s' } as CSSProperties} />
+        </>
+      )}
+      {scene.includes('snowhill') && <SnowHill />}
       {season.bunting && <Bunting colors={season.bunting} />}
       {slots.map((p, i) => {
         const m = season.motif[i % season.motif.length];
@@ -131,7 +255,7 @@ export function SeasonDecor({ season }: { season: Season }) {
           '--d': `${-((i * 1.7) % 9).toFixed(2)}s`, '--t': `${(season.fall ? 9 : 5) + (i % 5) * 1.3}s`,
         } as CSSProperties;
         return (
-          <span key={i} className={`sd ${season.fall ? 'sd-fall' : 'sd-float'}`} style={style}>
+          <span key={i} className={`sd ${season.fall ? 'sd-fall' : 'sd-float'} ${p.far ? 'sd-far' : ''}`} style={style}>
             <Shape {...m} />
           </span>
         );

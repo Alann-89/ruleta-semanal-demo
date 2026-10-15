@@ -6,7 +6,7 @@ import { DEFAULT_LOGO } from '../lib/defaultConfig';
 import { uploadImage } from '../lib/media';
 import { Alert, Field, PageLoader, Spinner, Switch } from '../components/ui';
 import { Wheel } from '../components/Wheel';
-import { SeasonDecor } from '../components/SeasonDecor';
+import { SeasonDecor, seasonVars } from '../components/SeasonDecor';
 import { SEASONS, effectiveConfig, resolveSeason, seasonById, seasonSectors, suggestedRange, suggestions, ymd, type Season } from '../lib/seasons';
 import { themeVars } from '../lib/theme';
 import { useToast } from '../context/Toast';
@@ -74,7 +74,7 @@ function Preview({ cfg: raw, sectors: baseSectors, device }: { cfg: SiteConfig; 
           <img src={logo ?? DEFAULT_LOGO} alt="" className="h-9 w-9 rounded-xl object-cover" />
           <span className="font-display truncate text-base font-extrabold uppercase tracking-[0.04em]">{cfg.store.name}</span>
         </header>
-        <section className="hero">
+        <section className="hero" style={seasonVars(season)}>
           {season && fx.decor && <SeasonDecor season={season} />}
           <div className={`relative mx-auto px-4 pb-12 pt-6 ${device === 'desktop' ? 'max-w-2xl' : ''}`}>
             <h1 className="font-display mx-auto max-w-[17ch] text-center text-[1.7rem] font-extrabold leading-[1.05]" style={{ color: 'var(--hero-ink)' }}>{cfg.copy.welcome_title}</h1>
@@ -148,13 +148,18 @@ function SeasonPicker({ theme, onChange }: { theme: SiteConfig['theme']; onChang
       <div role="radiogroup" aria-label="Diseño de temporada" className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {[null, ...SEASONS].map((s) => {
           const on = (s?.id ?? null) === (current?.id ?? null);
-          const sw = s ? [s.colors.primary, s.colors.secondary, s.colors.accent, s.wheel[1] ?? '#fff'] : [theme.primary, theme.secondary, theme.accent, theme.background];
+          const c1 = s?.colors.primary ?? theme.primary, c2 = s?.colors.secondary ?? theme.secondary;
+          const pal = s ? s.wheel : [theme.primary, '#ffffff', theme.secondary, theme.accent];
+          const wheel = `conic-gradient(${Array.from({ length: 8 }, (_, i) => `${pal[i % pal.length]} ${i * 12.5}% ${(i + 1) * 12.5}%`).join(',')})`;
           return (
             <button key={s?.id ?? 'marca'} type="button" role="radio" aria-checked={on} onClick={() => choose(s)}
               className="rounded-2xl border-2 bg-surface p-2.5 text-left transition-shadow hover:shadow-md focus-visible:outline-2"
               style={{ borderColor: on ? '#a8340e' : 'var(--line)', boxShadow: on ? '0 0 0 3px rgb(168 52 14 / .15)' : undefined }}>
-              <span className="mb-2 flex h-7 overflow-hidden rounded-lg" aria-hidden="true">
-                {sw.map((c, i) => <span key={i} className="flex-1" style={{ background: c }} />)}
+              <span className="relative mb-2 flex h-20 items-center justify-center overflow-hidden rounded-xl" style={{ background: c2 }} aria-hidden="true">
+                <span className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${c1}, ${c1})`, clipPath: 'polygon(0 36%, 50% 0, 100% 36%, 100% 100%, 0 100%)' }} />
+                <span className="relative mt-3 h-14 w-14 rounded-full border-[5px] border-white shadow-lg" style={{ background: wheel }} />
+                <span className="absolute left-2 top-1 text-lg drop-shadow">{s?.emoji ?? '🏠'}</span>
+                <span className="absolute bottom-1 right-2 text-lg opacity-90 drop-shadow">{s?.emoji ?? ''}</span>
               </span>
               <span className="flex items-center gap-1.5 text-sm font-semibold"><span aria-hidden="true">{s?.emoji ?? '🏠'}</span>{s?.name ?? 'Diseño de marca'}{on && <span className="ml-auto text-xs font-bold" style={{ color: '#a8340e' }}>✓</span>}</span>
               <span className="block text-xs text-dim">{s?.dates ?? 'Sin temporada'}</span>
