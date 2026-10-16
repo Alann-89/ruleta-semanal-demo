@@ -194,6 +194,40 @@ function TestModal({ open, onClose, sectors, dirty, storeName }: { open: boolean
   );
 }
 
+/** Revisa los resultados antes de enviarlos, para avisar cuál falla y por qué. */
+function validateItems(list: Item[]): { msgs: string[]; firstKey: string | null } {
+  const msgs: string[] = [];
+  let firstKey: string | null = null;
+  list.filter((i) => !i.archived_at).forEach((i, n) => {
+    const name = i.name.trim();
+    const who = name ? `«${name}»` : `El resultado n.º ${n + 1}`;
+    const bad = (m: string) => { msgs.push(`${who}: ${m}`); firstKey ??= i._key; };
+    if (!name) bad('escribe un nombre.');
+    else if (i.name.length > 80) bad('el nombre admite hasta 80 caracteres.');
+    if (!i.sector_label.trim()) bad('escribe el texto que se verá sobre la ruleta.');
+    else if (i.sector_label.length > 24) bad('el texto del sector admite hasta 24 caracteres.');
+    if (i.kind === 'percent_discount' && Number(i.value) > 100) bad('un descuento en % no puede pasar de 100.');
+  });
+  return { msgs, firstKey };
+}
+
+/** Traduce los rechazos técnicos de la base de datos a un aviso comprensible. */
+const DB_HINTS: Record<string, string> = {
+  prizes_name_check: 'Hay un resultado sin nombre (o con más de 80 caracteres). Revisa que todos tengan nombre.',
+  prizes_sector_label_check: 'Hay un resultado sin texto de sector (o con más de 24 caracteres).',
+  prizes_image_url_check: 'Una imagen no es válida: debe ser una URL https.',
+  prizes_color_check: 'Un color no es válido (usa el formato #RRGGBB).',
+  prizes_percent_range: 'Un descuento en % no puede pasar de 100.',
+  prizes_probability_check: 'Una probabilidad debe estar entre 0 y 100.',
+  prizes_coupon_valid_days_check: 'La vigencia del cupón debe estar entre 1 y 365 días.',
+  prizes_description_check: 'Una descripción pasa de 400 caracteres.',
+  prizes_conditions_check: 'Unas condiciones pasan de 600 caracteres.',
+};
+const friendlyDbError = (msg: string) => {
+  const m = /constraint "([a-z_]+)"/.exec(msg);
+  return (m && DB_HINTS[m[1]]) || msg;
+};
+
 export default function PrizesPage() {
   const toast = useToast();
   const { config: site } = useApp();
@@ -247,6 +281,13 @@ export default function PrizesPage() {
 
   const save = async () => {
     if (!cfg) return;
+    const check = validateItems(items);
+    if (check.msgs.length > 0) {
+      setErrors(check.msgs); setOpen(check.firstKey);
+      toast('Completa los datos que faltan antes de guardar', 'error');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setSaving(true); setErrors([]);
     const payload = items.map((i, n) => strip({ ...i, sort_order: i.archived_at ? i.sort_order : n * 10 }));
     try {
@@ -256,7 +297,7 @@ export default function PrizesPage() {
       setItems(list); setSaved(JSON.stringify(list.map(strip)));
       toast('Resultados guardados', 'ok');
     } catch (e) {
-      if (e instanceof ApiError) { setErrors(e.validation.length ? e.validation : [e.message]); toast('No se guardó: revisa los avisos', 'error'); }
+      if (e instanceof ApiError) { setErrors(e.validation.length ? e.validation : [friendlyDbError(e.message)]); toast('No se guardó: revisa los avisos', 'error'); }
       else toast('Error inesperado', 'error');
     } finally { setSaving(false); }
   };
