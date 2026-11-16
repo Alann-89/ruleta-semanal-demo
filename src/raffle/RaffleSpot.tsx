@@ -173,7 +173,7 @@ function RaffleSheet({ v, open, onClose }: { v: View; open: boolean; onClose: ()
   const { r } = v;
   const unlock = Date.parse(r.unlock_at), draw = Date.parse(r.draw_at);
   const steps: Array<[string, string]> = [
-    ['Consigue tu boleto', 'En caja, con tu compra: muestra tu código de cliente o registra el código impreso en tu ticket.'],
+    ['Consigue tu boleto', `${r.how_to_get ? `${r.how_to_get.replace(/\.?$/, '.')} ` : ''}En caja, muestra tu código de cliente o registra el código impreso en tu ticket.`],
     [`Se abre el ${fmtDayShort(unlock)}`, 'Ese día aparece la pestaña «Sorteo», donde ves tus boletos y puedes sumar más.'],
     [`Ganador el ${fmtDayShort(draw)}`, r.draw_mode === 'auto'
       ? `A las ${fmtTime(draw)} el sistema elige un boleto al azar.`
@@ -202,7 +202,10 @@ function RaffleSheet({ v, open, onClose }: { v: View; open: boolean; onClose: ()
             </li>
           ))}
         </ol>
-        <Link to="/reglas" onClick={onClose} className="mt-4 inline-block text-sm font-semibold underline underline-offset-4">Reglas del sorteo</Link>
+        <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <Link to="/sorteo/bases" onClick={onClose} className="font-semibold underline underline-offset-4">Bases del sorteo</Link>
+          {r.permit_number && <span className="text-dim">Permiso de la Secretaría de Gobernación: {r.permit_number}</span>}
+        </p>
       </div>
     </Modal>,
     document.body,

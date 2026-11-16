@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { ackSpin, errText, getSpinResult, redeemPromoCode, spin as spinApi, ApiError } from '../lib/api';
 import type { Sector, SpinPayload } from '../lib/types';
@@ -199,7 +200,7 @@ export function WheelCard({ title, children, aside, top }: { title: string; chil
               <button type="button" onClick={() => void signInWithGoogle()} className="btn btn-ghost !min-h-14 !rounded-full !px-6 !text-base shadow-sm">
                 <IconGoogle /> Continuar con Google
               </button>
-              <p className="max-w-sm text-center text-sm text-dim">Inicia sesión para girar. Solo usamos tu nombre y correo para identificar tu cuenta.</p>
+              <p className="max-w-sm text-center text-sm text-dim">Inicia sesión para girar. Usamos tu nombre, correo y foto de Google para identificar tu cuenta y entregarte tus premios. Consulta el <Link to="/privacidad" className="underline underline-offset-4">aviso de privacidad</Link>.</p>
             </>
           ) : (
             <>

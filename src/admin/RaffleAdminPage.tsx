@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Empty, Field, Modal, PageLoader, Spinner } from '../components/ui';
 import { QrScanner } from '../components/QrScanner';
-import { IconMinus, IconPlus, IconScan, IconTrophy } from '../components/icons';
+import { IconCheck, IconMinus, IconPlus, IconScan, IconTrophy } from '../components/icons';
 import { useToast } from '../context/Toast';
+import { useApp } from '../context/AppContext';
 import {
   ApiError, adminCreateRaffleCodes, adminDrawRaffle, adminListRaffles, adminRaffleDetail, adminSaveRaffle,
   adminSetRaffleStatus, adminVoidRaffleTicket, errText, staffFindCustomer, staffGrantRaffleTickets,
@@ -13,6 +14,7 @@ import { uploadImage } from '../lib/media';
 import type { AdminRaffle, DrawMode, FoundCustomer, RaffleDetail, RaffleFields, RafflePhase, RaffleStatus } from '../lib/types';
 import { refreshRaffle, useRaffleStore } from '../raffle/store';
 import { fmtLong, SOURCE_LABEL, ticketLabel } from '../raffle/parts';
+import { buildRaffleRules, hasTodo, publishIssues } from '../raffle/rules';
 
 const STATUS_LABEL: Record<RaffleStatus, string> = { draft: 'Borrador', published: 'Publicado', archived: 'Archivado' };
 const STATUS_BADGE: Record<RaffleStatus, string> = { draft: 'badge-pending', published: 'badge-redeemed', archived: 'badge-expired' };
@@ -146,7 +148,10 @@ function GrantTickets({ maxPerCustomer, onGranted }: { maxPerCustomer: number; o
 // ---------------------------------------------------------------------------
 // Formulario del sorteo
 // ---------------------------------------------------------------------------
-interface Draft { title: string; prize: string; prize_headline: string; prize_detail: string; prize_image_url: string | null; unlock: string; draw: string; draw_mode: DrawMode; max_per_customer: number; claim_days: number }
+interface Draft {
+  title: string; prize: string; prize_headline: string; prize_detail: string; prize_image_url: string | null; unlock: string; draw: string;
+  draw_mode: DrawMode; max_per_customer: number; claim_days: number; how_to_get: string; prize_value: string; permit_number: string; rules_text: string;
+}
 
 function defaultDraft(): Draft {
   const day = 86_400_000;
@@ -154,21 +159,25 @@ function defaultDraft(): Draft {
     const d = new Date(Date.now() + offsetDays * day);
     return `${isoToZonedLocal(d.toISOString(), DEFAULT_TZ).slice(0, 10)}T${String(h).padStart(2, '0')}:00`;
   };
-  return { title: '', prize: '', prize_headline: '', prize_detail: '', prize_image_url: null, unlock: at(1, 10), draw: at(8, 20), draw_mode: 'manual', max_per_customer: 5, claim_days: 30 };
+  return { title: '', prize: '', prize_headline: '', prize_detail: '', prize_image_url: null, unlock: at(1, 10), draw: at(8, 20), draw_mode: 'manual', max_per_customer: 5, claim_days: 30, how_to_get: '', prize_value: '', permit_number: '', rules_text: '' };
 }
 const toDraft = (r: AdminRaffle): Draft => ({
   title: r.title, prize: r.prize, prize_headline: r.prize_headline, prize_detail: r.prize_detail ?? '', prize_image_url: r.prize_image_url,
   unlock: isoToZonedLocal(r.unlock_at, DEFAULT_TZ), draw: isoToZonedLocal(r.draw_at, DEFAULT_TZ),
   draw_mode: r.draw_mode, max_per_customer: r.max_per_customer, claim_days: r.claim_days,
+  how_to_get: r.how_to_get ?? '', prize_value: r.prize_value != null ? String(r.prize_value) : '', permit_number: r.permit_number ?? '', rules_text: r.rules_text ?? '',
 });
 const toFields = (d: Draft): RaffleFields => ({
   title: d.title.trim(), prize: d.prize.trim(), prize_headline: d.prize_headline.trim(), prize_detail: d.prize_detail.trim() || null,
   prize_image_url: d.prize_image_url, unlock_at: d.unlock ? zonedLocalToIso(d.unlock, DEFAULT_TZ) : '', draw_at: d.draw ? zonedLocalToIso(d.draw, DEFAULT_TZ) : '',
   draw_mode: d.draw_mode, max_per_customer: d.max_per_customer, claim_days: d.claim_days,
+  how_to_get: d.how_to_get.trim() || null, prize_value: d.prize_value.trim() === '' ? null : Number(d.prize_value), permit_number: d.permit_number.trim() || null,
+  rules_text: d.rules_text.trim() || null,
 });
 
 function RaffleForm({ raffle, onSaved, onCancel }: { raffle: AdminRaffle | null; onSaved: (id: string) => void; onCancel?: () => void }) {
   const toast = useToast();
+  const { config } = useApp();
   const [d, setD] = useState<Draft>(() => (raffle ? toDraft(raffle) : defaultDraft()));
   const [errors, setErrors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -206,6 +215,17 @@ function RaffleForm({ raffle, onSaved, onCancel }: { raffle: AdminRaffle | null;
           <Field label="Frase de la tarjeta" hint="Empieza con el verbo. Ej.: Gana una Pantalla Smart TV de 55″">{(id) => <input id={id} className="input" maxLength={60} value={d.prize_headline} onChange={(e) => setD({ ...d, prize_headline: e.target.value })} />}</Field>
         </div>
         <Field label="Detalle del premio (opcional)" hint="Ej.: 4K, con instalación incluida. Se entrega en la tienda.">{(id) => <input id={id} className="input" maxLength={160} value={d.prize_detail} onChange={(e) => setD({ ...d, prize_detail: e.target.value })} />}</Field>
+        <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
+          <Field label="Cómo se consigue un boleto" hint="Obligatorio para publicar. Ej.: Un boleto por cada compra de $500 o más.">
+            {(id) => <input id={id} className="input" maxLength={240} value={d.how_to_get} onChange={(e) => setD({ ...d, how_to_get: e.target.value })} />}
+          </Field>
+          <Field label="Valor del premio (MXN)" hint="Opcional; aparece en las bases.">
+            {(id) => <input id={id} type="number" min={0} step="0.01" inputMode="decimal" className="input" value={d.prize_value} onChange={(e) => setD({ ...d, prize_value: e.target.value })} />}
+          </Field>
+        </div>
+        <Field label="Número de permiso de la Secretaría de Gobernación" hint="Obligatorio para publicar. Se muestra a los clientes junto al sorteo y en las bases.">
+          {(id) => <input id={id} className="input font-mono" maxLength={60} value={d.permit_number} onChange={(e) => setD({ ...d, permit_number: e.target.value })} placeholder="Ej.: 20260000PS01" />}
+        </Field>
         <Field label="Foto del premio" hint="La imagen es lo que más llama la atención. De preferencia con fondo liso; se comprime sola.">
           {(id) => (
             <div className="flex items-center gap-3">
@@ -245,6 +265,19 @@ function RaffleForm({ raffle, onSaved, onCancel }: { raffle: AdminRaffle | null;
             {(id) => <input id={id} type="number" min={1} max={365} className="input !w-28" value={d.claim_days} onChange={(e) => setD({ ...d, claim_days: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />}
           </Field>
         </div>
+        <Field label="Bases del sorteo" hint="Obligatorias para publicar. Se generan con los datos de arriba y de la tienda; revisa y completa lo marcado como [COMPLETAR …]. Formato: «## » títulos, «- » viñetas.">
+          {(id) => (
+            <div className="space-y-2">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
+                if (d.rules_text.trim() && !window.confirm('¿Reemplazar las bases actuales por una plantilla nueva con los datos del sorteo?')) return;
+                setD({ ...d, rules_text: buildRaffleRules(toFields(d), config, raffle?.published_at ?? null) });
+              }}>Generar bases con los datos del sorteo</button>
+              <textarea id={id} className="input !min-h-72 font-mono text-sm" maxLength={12000} value={d.rules_text} onChange={(e) => setD({ ...d, rules_text: e.target.value })} />
+              {hasTodo(d.rules_text) && <p className="text-sm font-semibold text-warn">Faltan datos marcados como [COMPLETAR …]: el sorteo no se podrá publicar hasta llenarlos.</p>}
+            </div>
+          )}
+        </Field>
+        {raffle?.status === 'published' && <Alert kind="warn">El sorteo ya está publicado: si cambias las bases o las condiciones, avísalo a Profeco por escrito al menos un día hábil antes del cambio.</Alert>}
       </fieldset>
       {errors.length > 0 && <Alert kind="error"><ul className="list-disc space-y-1 pl-5">{errors.map((x) => <li key={x}>{x}</li>)}</ul></Alert>}
       {!locked && (
@@ -260,6 +293,30 @@ function RaffleForm({ raffle, onSaved, onCancel }: { raffle: AdminRaffle | null;
 // ---------------------------------------------------------------------------
 // Secciones de un sorteo existente
 // ---------------------------------------------------------------------------
+/** Requisitos legales antes de publicar (NOM-028-SCFI-2007): lo que falta y el aviso a Profeco. */
+function PublishChecklist({ r }: { r: AdminRaffle }) {
+  const missing = publishIssues(r);
+  const items: Array<[string, boolean]> = [
+    ['Número de permiso de la Secretaría de Gobernación', !missing.includes('Número de permiso de la Secretaría de Gobernación')],
+    ['Cómo se consigue un boleto', !missing.includes('Cómo se consigue un boleto')],
+    ['Bases completas, sin datos pendientes', !missing.some((m) => m.startsWith('Bases') || m.startsWith('Completar'))],
+  ];
+  return (
+    <div className="rounded-xl border border-line p-3 text-sm">
+      <p className="font-semibold">Antes de publicar</p>
+      <ul className="mt-2 space-y-1">
+        {items.map(([t, ok]) => (
+          <li key={t} className={`flex items-center gap-2 ${ok ? 'text-ok' : 'text-dim'}`}>
+            {ok ? <IconCheck width={16} height={16} /> : <span className="inline-block h-4 w-4 rounded-full border-2 border-current" aria-hidden="true" />}
+            <span>{t}{ok ? '' : ' (falta)'}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-dim">Además, avisa a Profeco por escrito al menos 3 días hábiles antes de iniciar la promoción, con la información de las bases (NOM-028-SCFI-2007).</p>
+    </div>
+  );
+}
+
 function StatusActions({ r, onChanged }: { r: AdminRaffle; onChanged: () => void }) {
   const toast = useToast();
   const [ask, setAsk] = useState<RaffleStatus | null>(null);
@@ -546,6 +603,7 @@ function AdminRaffles() {
               {' · '}se abre el {fmtLong(Date.parse(current.unlock_at))} · sorteo el {fmtLong(Date.parse(current.draw_at))}
             </p>
             <StatusActions r={current} onChanged={() => void reload()} />
+            {current.status === 'draft' && <PublishChecklist r={current} />}
           </section>
 
           {current.status === 'published' && !current.winner && <GrantTickets maxPerCustomer={current.max_per_customer} onGranted={() => void reload()} />}

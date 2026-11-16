@@ -113,9 +113,17 @@ export type DrawMode = 'manual' | 'auto';
 export interface RaffleFields {
   title: string; prize: string; prize_headline: string; prize_detail: string | null; prize_image_url: string | null;
   unlock_at: string; draw_at: string; draw_mode: DrawMode; max_per_customer: number; claim_days: number;
+  /** Mecánica para obtener un boleto (NOM-028-SCFI-2007, 4.1.10.4). */
+  how_to_get: string | null;
+  /** Valor aproximado del premio en pesos (opcional). */
+  prize_value: number | null;
+  /** Número de permiso de la Secretaría de Gobernación (obligatorio para publicar). */
+  permit_number: string | null;
+  /** Bases del sorteo (formato: «## » títulos, «- » viñetas). */
+  rules_text: string | null;
 }
 export interface RaffleInfo extends RaffleFields {
-  id: string; phase: RafflePhase; total_tickets: number;
+  id: string; phase: RafflePhase; total_tickets: number; published_at: string | null;
   winner: { number: number; name: string; mine: boolean; at: string } | null;
 }
 export interface MyRaffleTicket { number: number; source: TicketSource; created_at: string }
@@ -125,7 +133,7 @@ export interface RaffleState {
   me: { tickets: MyRaffleTicket[]; reminder: boolean } | null;
 }
 export interface AdminRaffle extends RaffleFields {
-  id: string; status: RaffleStatus; phase: RafflePhase; created_at: string; updated_at: string; drawn_at: string | null;
+  id: string; status: RaffleStatus; phase: RafflePhase; created_at: string; updated_at: string; drawn_at: string | null; published_at: string | null;
   tickets: number; participants: number; codes_total: number; codes_free: number; reminders: number;
   winner: { number: number; name: string | null; email: string; user_id: string } | null;
 }

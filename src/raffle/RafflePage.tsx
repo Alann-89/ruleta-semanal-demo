@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { IconGoogle, IconLock, IconTrophy } from '../components/icons';
-import { PageLoader, QrImage } from '../components/ui';
+import { PageLoader, QrImage, SimpleText } from '../components/ui';
 import { PageTitle } from '../components/Layout';
 import { errText, redeemRaffleCode } from '../lib/api';
 import type { RaffleInfo } from '../lib/types';
@@ -173,7 +173,7 @@ export default function RafflePage() {
             </div>
             {!session ? (
               <div className="mt-4 flex flex-col items-start gap-3">
-                <p className="text-dim">Inicia sesión para ver tus boletos.</p>
+                <p className="text-dim">Inicia sesión para ver tus boletos. Consulta el <Link to="/privacidad" className="underline underline-offset-4">aviso de privacidad</Link>.</p>
                 <button type="button" onClick={() => void signInWithGoogle()} className="btn btn-ghost !min-h-12 !rounded-full !px-5"><IconGoogle /> Continuar con Google</button>
               </div>
             ) : mine.length === 0 ? (
@@ -196,7 +196,7 @@ export default function RafflePage() {
                   <div className="ways mt-5">
                     <div className="way">
                       <h3 className="font-display text-lg font-bold leading-tight">En caja, con tu compra</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-dim">Muestra tu código de cliente al pagar y el personal te asigna tus boletos al momento.</p>
+                      <p className="mt-1 text-sm leading-relaxed text-dim">{r.how_to_get ? `${r.how_to_get.replace(/\.?$/, '.')} ` : ''}Muestra tu código de cliente al pagar y el personal te asigna tus boletos al momento.</p>
                       <div className="mt-3 flex items-center gap-4">
                         <QrImage value={`LUKY-CLIENTE:${session.user.id}`} size={124} alt="Tu código de cliente" className="border border-line" />
                         <p className="text-xs leading-relaxed text-dim">Tu código de cliente.<br />Sube el brillo de la pantalla para que se lea mejor.</p>
@@ -218,10 +218,33 @@ export default function RafflePage() {
             <p className="mt-2 max-w-prose leading-relaxed text-dim">{how}</p>
             <p className="mt-2 max-w-prose leading-relaxed text-dim">Cada boleto tiene la misma oportunidad. Por privacidad, el nombre del ganador se muestra abreviado.</p>
             {phase === 'drawn' && session && !r.winner?.mine && <p className="mt-2 font-semibold">Esta vez no fue tu boleto. ¡Gracias por participar!</p>}
-            <Link to="/reglas" className="mt-4 inline-block text-sm font-semibold underline underline-offset-4">Reglas del sorteo</Link>
+            <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <Link to="/sorteo/bases" className="font-semibold underline underline-offset-4">Bases del sorteo</Link>
+              {r.permit_number && <span className="text-dim">Permiso de la Secretaría de Gobernación: {r.permit_number}</span>}
+            </p>
           </section>
         </div>
       </div>
+    </>
+  );
+}
+
+/** Bases del sorteo publicado (las redacta la tienda en el panel). */
+export function RaffleRulesPage() {
+  const { state, loaded } = useRaffleStore();
+  const r = state?.raffle ?? null;
+  if (!loaded) return <PageLoader />;
+  return (
+    <>
+      <PageTitle sub={r ? `${r.title} · ${r.prize}` : undefined}>Bases del sorteo</PageTitle>
+      {!r ? <p className="text-dim">Ahora no hay un sorteo publicado.</p> : (
+        <article className="card p-5 md:p-7">
+          {r.permit_number && <p className="mb-4 font-semibold">Permiso de la Secretaría de Gobernación: {r.permit_number}</p>}
+          {r.rules_text ? <SimpleText text={r.rules_text} className="prose-lite" /> : <p className="text-dim">La tienda aún no publica las bases de este sorteo.</p>}
+          <p className="mt-6 text-sm text-dim">Consulta también el <Link to="/privacidad" className="underline underline-offset-4">aviso de privacidad</Link> y las <Link to="/reglas" className="underline underline-offset-4">reglas de la ruleta</Link>.</p>
+        </article>
+      )}
+      <Link to="/sorteo" className="btn btn-ghost mt-6">Volver al sorteo</Link>
     </>
   );
 }

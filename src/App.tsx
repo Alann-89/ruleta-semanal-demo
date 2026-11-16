@@ -16,6 +16,7 @@ const DemoUI = import.meta.env.VITE_DEMO === '1' ? lazy(() => import('./demo/Dem
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 const RafflePage = lazy(() => import('./raffle/RafflePage'));
+const RaffleRulesPage = lazy(() => import('./raffle/RafflePage').then((m) => ({ default: m.RaffleRulesPage })));
 const DevLogin = lazy(() => import('./pages/DevLogin'));
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
                   <Route index element={<HomePage />} />
                   <Route path="premios" element={<MyPrizesPage />} />
                   <Route path="sorteo" element={<RafflePage />} />
+                  <Route path="sorteo/bases" element={<RaffleRulesPage />} />
                   <Route path="historial" element={<HistoryPage />} />
                   <Route path="reglas" element={<RulesPage />} />
                   <Route path="privacidad" element={<PrivacyPage />} />
