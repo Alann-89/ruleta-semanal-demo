@@ -113,12 +113,10 @@ export type DrawMode = 'manual' | 'auto';
 export interface RaffleFields {
   title: string; prize: string; prize_headline: string; prize_detail: string | null; prize_image_url: string | null;
   unlock_at: string; draw_at: string; draw_mode: DrawMode; max_per_customer: number; claim_days: number;
-  /** Mecánica para obtener un boleto (NOM-028-SCFI-2007, 4.1.10.4). */
+  /** Cómo se consigue un boleto (obligatorio para publicar). */
   how_to_get: string | null;
   /** Valor aproximado del premio en pesos (opcional). */
   prize_value: number | null;
-  /** Número de permiso de la Secretaría de Gobernación (obligatorio para publicar). */
-  permit_number: string | null;
   /** Bases del sorteo (formato: «## » títulos, «- » viñetas). */
   rules_text: string | null;
 }

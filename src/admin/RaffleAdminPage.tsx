@@ -150,7 +150,7 @@ function GrantTickets({ maxPerCustomer, onGranted }: { maxPerCustomer: number; o
 // ---------------------------------------------------------------------------
 interface Draft {
   title: string; prize: string; prize_headline: string; prize_detail: string; prize_image_url: string | null; unlock: string; draw: string;
-  draw_mode: DrawMode; max_per_customer: number; claim_days: number; how_to_get: string; prize_value: string; permit_number: string; rules_text: string;
+  draw_mode: DrawMode; max_per_customer: number; claim_days: number; how_to_get: string; prize_value: string; rules_text: string;
 }
 
 function defaultDraft(): Draft {
@@ -159,19 +159,19 @@ function defaultDraft(): Draft {
     const d = new Date(Date.now() + offsetDays * day);
     return `${isoToZonedLocal(d.toISOString(), DEFAULT_TZ).slice(0, 10)}T${String(h).padStart(2, '0')}:00`;
   };
-  return { title: '', prize: '', prize_headline: '', prize_detail: '', prize_image_url: null, unlock: at(1, 10), draw: at(8, 20), draw_mode: 'manual', max_per_customer: 5, claim_days: 30, how_to_get: '', prize_value: '', permit_number: '', rules_text: '' };
+  return { title: '', prize: '', prize_headline: '', prize_detail: '', prize_image_url: null, unlock: at(1, 10), draw: at(8, 20), draw_mode: 'manual', max_per_customer: 5, claim_days: 30, how_to_get: '', prize_value: '', rules_text: '' };
 }
 const toDraft = (r: AdminRaffle): Draft => ({
   title: r.title, prize: r.prize, prize_headline: r.prize_headline, prize_detail: r.prize_detail ?? '', prize_image_url: r.prize_image_url,
   unlock: isoToZonedLocal(r.unlock_at, DEFAULT_TZ), draw: isoToZonedLocal(r.draw_at, DEFAULT_TZ),
   draw_mode: r.draw_mode, max_per_customer: r.max_per_customer, claim_days: r.claim_days,
-  how_to_get: r.how_to_get ?? '', prize_value: r.prize_value != null ? String(r.prize_value) : '', permit_number: r.permit_number ?? '', rules_text: r.rules_text ?? '',
+  how_to_get: r.how_to_get ?? '', prize_value: r.prize_value != null ? String(r.prize_value) : '', rules_text: r.rules_text ?? '',
 });
 const toFields = (d: Draft): RaffleFields => ({
   title: d.title.trim(), prize: d.prize.trim(), prize_headline: d.prize_headline.trim(), prize_detail: d.prize_detail.trim() || null,
   prize_image_url: d.prize_image_url, unlock_at: d.unlock ? zonedLocalToIso(d.unlock, DEFAULT_TZ) : '', draw_at: d.draw ? zonedLocalToIso(d.draw, DEFAULT_TZ) : '',
   draw_mode: d.draw_mode, max_per_customer: d.max_per_customer, claim_days: d.claim_days,
-  how_to_get: d.how_to_get.trim() || null, prize_value: d.prize_value.trim() === '' ? null : Number(d.prize_value), permit_number: d.permit_number.trim() || null,
+  how_to_get: d.how_to_get.trim() || null, prize_value: d.prize_value.trim() === '' ? null : Number(d.prize_value),
   rules_text: d.rules_text.trim() || null,
 });
 
@@ -223,9 +223,6 @@ function RaffleForm({ raffle, onSaved, onCancel }: { raffle: AdminRaffle | null;
             {(id) => <input id={id} type="number" min={0} step="0.01" inputMode="decimal" className="input" value={d.prize_value} onChange={(e) => setD({ ...d, prize_value: e.target.value })} />}
           </Field>
         </div>
-        <Field label="Número de permiso de la Secretaría de Gobernación" hint="Obligatorio para publicar. Se muestra a los clientes junto al sorteo y en las bases.">
-          {(id) => <input id={id} className="input font-mono" maxLength={60} value={d.permit_number} onChange={(e) => setD({ ...d, permit_number: e.target.value })} placeholder="Ej.: 20260000PS01" />}
-        </Field>
         <Field label="Foto del premio" hint="La imagen es lo que más llama la atención. De preferencia con fondo liso; se comprime sola.">
           {(id) => (
             <div className="flex items-center gap-3">
@@ -277,7 +274,6 @@ function RaffleForm({ raffle, onSaved, onCancel }: { raffle: AdminRaffle | null;
             </div>
           )}
         </Field>
-        {raffle?.status === 'published' && <Alert kind="warn">El sorteo ya está publicado: si cambias las bases o las condiciones, avísalo a Profeco por escrito al menos un día hábil antes del cambio.</Alert>}
       </fieldset>
       {errors.length > 0 && <Alert kind="error"><ul className="list-disc space-y-1 pl-5">{errors.map((x) => <li key={x}>{x}</li>)}</ul></Alert>}
       {!locked && (
@@ -293,11 +289,10 @@ function RaffleForm({ raffle, onSaved, onCancel }: { raffle: AdminRaffle | null;
 // ---------------------------------------------------------------------------
 // Secciones de un sorteo existente
 // ---------------------------------------------------------------------------
-/** Requisitos legales antes de publicar (NOM-028-SCFI-2007): lo que falta y el aviso a Profeco. */
+/** Lo que falta antes de publicar (lo mismo que valida el servidor). */
 function PublishChecklist({ r }: { r: AdminRaffle }) {
   const missing = publishIssues(r);
   const items: Array<[string, boolean]> = [
-    ['Número de permiso de la Secretaría de Gobernación', !missing.includes('Número de permiso de la Secretaría de Gobernación')],
     ['Cómo se consigue un boleto', !missing.includes('Cómo se consigue un boleto')],
     ['Bases completas, sin datos pendientes', !missing.some((m) => m.startsWith('Bases') || m.startsWith('Completar'))],
   ];
@@ -312,7 +307,6 @@ function PublishChecklist({ r }: { r: AdminRaffle }) {
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-dim">Además, avisa a Profeco por escrito al menos 3 días hábiles antes de iniciar la promoción, con la información de las bases (NOM-028-SCFI-2007).</p>
     </div>
   );
 }

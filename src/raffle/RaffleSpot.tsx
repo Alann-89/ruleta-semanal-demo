@@ -202,10 +202,7 @@ function RaffleSheet({ v, open, onClose }: { v: View; open: boolean; onClose: ()
             </li>
           ))}
         </ol>
-        <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <Link to="/sorteo/bases" onClick={onClose} className="font-semibold underline underline-offset-4">Bases del sorteo</Link>
-          {r.permit_number && <span className="text-dim">Permiso de la Secretaría de Gobernación: {r.permit_number}</span>}
-        </p>
+        <Link to="/sorteo/bases" onClick={onClose} className="mt-4 inline-block text-sm font-semibold underline underline-offset-4">Bases del sorteo</Link>
       </div>
     </Modal>,
     document.body,

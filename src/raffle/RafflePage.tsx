@@ -218,10 +218,7 @@ export default function RafflePage() {
             <p className="mt-2 max-w-prose leading-relaxed text-dim">{how}</p>
             <p className="mt-2 max-w-prose leading-relaxed text-dim">Cada boleto tiene la misma oportunidad. Por privacidad, el nombre del ganador se muestra abreviado.</p>
             {phase === 'drawn' && session && !r.winner?.mine && <p className="mt-2 font-semibold">Esta vez no fue tu boleto. ¡Gracias por participar!</p>}
-            <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <Link to="/sorteo/bases" className="font-semibold underline underline-offset-4">Bases del sorteo</Link>
-              {r.permit_number && <span className="text-dim">Permiso de la Secretaría de Gobernación: {r.permit_number}</span>}
-            </p>
+            <Link to="/sorteo/bases" className="mt-4 inline-block text-sm font-semibold underline underline-offset-4">Bases del sorteo</Link>
           </section>
         </div>
       </div>
@@ -239,7 +236,6 @@ export function RaffleRulesPage() {
       <PageTitle sub={r ? `${r.title} · ${r.prize}` : undefined}>Bases del sorteo</PageTitle>
       {!r ? <p className="text-dim">Ahora no hay un sorteo publicado.</p> : (
         <article className="card p-5 md:p-7">
-          {r.permit_number && <p className="mb-4 font-semibold">Permiso de la Secretaría de Gobernación: {r.permit_number}</p>}
           {r.rules_text ? <SimpleText text={r.rules_text} className="prose-lite" /> : <p className="text-dim">La tienda aún no publica las bases de este sorteo.</p>}
           <p className="mt-6 text-sm text-dim">Consulta también el <Link to="/privacidad" className="underline underline-offset-4">aviso de privacidad</Link> y las <Link to="/reglas" className="underline underline-offset-4">reglas de la ruleta</Link>.</p>
         </article>
