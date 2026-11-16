@@ -104,6 +104,42 @@ export interface StaffCoupon {
 
 export interface Paged<T> { total: number; rows: T[] }
 
+// ---- Sorteo exclusivo --------------------------------------------------------
+export type RafflePhase = 'locked' | 'open' | 'drawn';
+export type RaffleStatus = 'draft' | 'published' | 'archived';
+export type TicketSource = 'panel' | 'code';
+export type DrawMode = 'manual' | 'auto';
+
+export interface RaffleFields {
+  title: string; prize: string; prize_headline: string; prize_detail: string | null; prize_image_url: string | null;
+  unlock_at: string; draw_at: string; draw_mode: DrawMode; max_per_customer: number; claim_days: number;
+}
+export interface RaffleInfo extends RaffleFields {
+  id: string; phase: RafflePhase; total_tickets: number;
+  winner: { number: number; name: string; mine: boolean; at: string } | null;
+}
+export interface MyRaffleTicket { number: number; source: TicketSource; created_at: string }
+export interface RaffleState {
+  server_time: string;
+  raffle: RaffleInfo | null;
+  me: { tickets: MyRaffleTicket[]; reminder: boolean } | null;
+}
+export interface AdminRaffle extends RaffleFields {
+  id: string; status: RaffleStatus; phase: RafflePhase; created_at: string; updated_at: string; drawn_at: string | null;
+  tickets: number; participants: number; codes_total: number; codes_free: number; reminders: number;
+  winner: { number: number; name: string | null; email: string; user_id: string } | null;
+}
+export interface RaffleParticipant {
+  user_id: string; name: string | null; email: string; last_at: string;
+  tickets: { id: string; number: number; source: TicketSource; reason: string | null; created_at: string; voided: boolean }[];
+}
+export interface RaffleDetail {
+  participants: RaffleParticipant[];
+  codes: { code: string; used_at: string | null; active: boolean; used_by: string | null }[];
+  reminders: number;
+}
+export interface FoundCustomer { id: string; name: string | null; email: string; tickets: number }
+
 export interface Campaign {
   id: string; name: string; status: CampaignStatus; timezone: string;
   starts_at: string | null; ends_at: string | null; require_participation_code: boolean;

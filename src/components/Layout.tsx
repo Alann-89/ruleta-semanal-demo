@@ -5,7 +5,9 @@ import { isMuted, setMuted, subscribeSound, unlockAudio, sfx } from '../lib/soun
 import { safeUrl } from '../lib/format';
 import { DEFAULT_LOGO } from '../lib/defaultConfig';
 import { Avatar } from './ui';
-import { IconBook, IconClock, IconGift, IconHome, IconLogout, IconShield, IconVolume, IconVolumeOff } from './icons';
+import { IconBook, IconClock, IconGift, IconHome, IconLogout, IconShield, IconTicket, IconVolume, IconVolumeOff } from './icons';
+import { phaseAt, useRaffleStore, useRaffleSync } from '../raffle/store';
+import { useNow } from '../raffle/parts';
 
 function useMuted() {
   return useSyncExternalStore(subscribeSound, isMuted, () => false);
@@ -44,7 +46,7 @@ function UserMenu() {
     <div className="relative">
       <button type="button" className="btn btn-ghost !min-h-11 !px-2" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <Avatar url={me?.user.avatar_url ?? session.user.user_metadata?.avatar_url} name={name} size={30} />
-        <span className="hidden max-w-[10rem] truncate text-sm sm:inline">{name}</span>
+        <span className="hidden max-w-[10rem] truncate text-sm sm:inline md:hidden lg:inline">{name}</span>
       </button>
       {open && (
         <>
@@ -70,15 +72,23 @@ function UserMenu() {
 const NAV = [
   { to: '/', label: 'Inicio', icon: IconHome, end: true },
   { to: '/premios', label: 'Mis premios', icon: IconGift },
+  { to: '/sorteo', label: 'Sorteo', icon: IconTicket },
   { to: '/historial', label: 'Historial', icon: IconClock },
   { to: '/reglas', label: 'Reglas', icon: IconBook },
 ];
 
 export function Layout() {
-  const { config, pubError, refreshPublic, me } = useApp();
+  const { config, pubError, refreshPublic, me, session } = useApp();
   const loc = useLocation();
   useEffect(() => { window.scrollTo({ top: 0 }); }, [loc.pathname]);
   const pending = me?.pending_coupons ?? 0;
+  // La pestaña «Sorteo» aparece cuando el sorteo se desbloquea (antes solo se ve la tarjeta con la cuenta regresiva).
+  useRaffleSync(session?.user.id ?? null);
+  const { state: raffleState, offset } = useRaffleStore();
+  const now = useNow(5000) + offset;
+  const raffleOpen = !!raffleState?.raffle && phaseAt(raffleState.raffle, now) !== 'locked';
+  const nav = NAV.filter((n) => n.to !== '/sorteo' || raffleOpen);
+  const fullBleed = loc.pathname === '/' || loc.pathname === '/sorteo';
   return (
     <div className="stage flex min-h-dvh flex-col">
       <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-black">Saltar al contenido</a>
@@ -88,13 +98,13 @@ export function Layout() {
             <Logo />
             <span className="min-w-0">
               <span className="font-display block truncate text-[1.05rem] font-extrabold uppercase leading-none tracking-[0.04em]">{config.store.name}</span>
-              {config.store.tagline && <span className="mt-1 hidden truncate text-xs text-dim sm:block">{config.store.tagline}</span>}
+              {config.store.tagline && <span className="mt-1 hidden truncate text-xs text-dim sm:block md:hidden lg:block">{config.store.tagline}</span>}
             </span>
           </Link>
           <nav className="ml-8 hidden flex-1 items-center gap-1 md:flex" aria-label="Principal">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end}
-                className={({ isActive }) => `relative px-3 py-2 text-sm font-semibold transition-colors after:absolute after:inset-x-3 after:-bottom-[13px] after:h-[3px] after:rounded-full after:transition-opacity ${isActive ? 'text-ink after:bg-[color:var(--c-primary)] after:opacity-100' : 'text-dim after:opacity-0 hover:text-ink'}`}>
+                className={({ isActive }) => `relative whitespace-nowrap px-3 py-2 text-sm font-semibold transition-colors after:absolute after:inset-x-3 after:-bottom-[13px] after:h-[3px] after:rounded-full after:transition-opacity ${isActive ? 'text-ink after:bg-[color:var(--c-primary)] after:opacity-100' : 'text-dim after:opacity-0 hover:text-ink'}`}>
                 {n.label}
               </NavLink>
             ))}
@@ -113,7 +123,7 @@ export function Layout() {
         </div>
       )}
 
-      <main id="contenido" className={`mx-auto w-full flex-1 ${loc.pathname === '/' ? '' : 'max-w-5xl px-4 pb-32 pt-6 md:pb-14'}`}><Outlet /></main>
+      <main id="contenido" className={`mx-auto w-full flex-1 ${fullBleed ? '' : 'max-w-5xl px-4 pb-32 pt-6 md:pb-14'}`}><Outlet /></main>
 
       <footer className="border-t border-[color:var(--line)] px-4 pb-28 pt-6 text-sm text-dim md:pb-10">
         <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -128,8 +138,8 @@ export function Layout() {
 
       {/* Navegación inferior en teléfonos */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[color:var(--line)] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden" aria-label="Principal">
-        <ul className="mx-auto grid max-w-md grid-cols-4">
-          {NAV.map((n) => (
+        <ul className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}>
+          {nav.map((n) => (
             <li key={n.to}>
               <NavLink to={n.to} end={n.end}
                 className={({ isActive }) => `relative flex min-h-16 flex-col items-center justify-center gap-0.5 text-[0.72rem] font-semibold before:absolute before:inset-x-[28%] before:top-0 before:h-[3px] before:rounded-b-full ${isActive ? 'text-ink before:bg-[color:var(--c-primary)]' : 'text-dim before:bg-transparent'}`}>

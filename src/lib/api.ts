@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import type {
   AdminConfig, AdminSpinRow, AdminUser, AuditRow, CodeRow, Dashboard, ExtraSpinRow, HistoryRow, MyCoupon,
   MyStatus, Paged, PublicState, SimulationResult, SiteConfig, SpinPayload, StaffCoupon, Prize, Role,
+  AdminRaffle, FoundCustomer, RaffleDetail, RaffleFields, RaffleState, RaffleStatus,
 } from './types';
 
 /** Error normalizado de la API (red, permisos, validación o error de negocio). */
@@ -115,6 +116,21 @@ export const adminSaveDraft = (draft: SiteConfig) => rpc<{ ok: true; errors: str
 export const adminPublishConfig = () => rpc<{ ok: true }>('admin_publish_config');
 export const adminDiscardDraft = () => rpc<{ ok: true }>('admin_discard_draft');
 
+// ---- Sorteo exclusivo -------------------------------------------------------
+export const getRaffleState = () => rpc<RaffleState>('get_raffle_state');
+export const redeemRaffleCode = (code: string) => rpc<{ ok: true; number: number } | Fail>('redeem_raffle_code', { p_code: code });
+export const toggleRaffleReminder = () => rpc<{ ok: true; reminder: boolean } | Fail>('toggle_raffle_reminder');
+export const staffFindCustomer = (query: string) => rpc<FoundCustomer[]>('staff_find_customer', { p_query: query });
+export const staffGrantRaffleTickets = (userId: string, qty: number, reason: string) =>
+  rpc<{ ok: true; numbers: number[]; have: number } | Fail>('staff_grant_raffle_tickets', { p_user_id: userId, p_qty: qty, p_reason: reason });
+export const adminListRaffles = () => rpc<AdminRaffle[]>('admin_list_raffles');
+export const adminRaffleDetail = (id: string) => rpc<({ ok: true } & RaffleDetail) | Fail>('admin_raffle_detail', { p_raffle_id: id });
+export const adminSaveRaffle = (id: string | null, fields: RaffleFields) => rpc<{ ok: true; id: string } | Fail>('admin_save_raffle', { p_raffle_id: id, p: fields });
+export const adminSetRaffleStatus = (id: string, status: RaffleStatus) => rpc<{ ok: true } | Fail>('admin_set_raffle_status', { p_raffle_id: id, p_status: status });
+export const adminCreateRaffleCodes = (id: string, count: number) => rpc<{ ok: true; codes: string[] } | Fail>('admin_create_raffle_codes', { p_raffle_id: id, p_count: count });
+export const adminDrawRaffle = (id: string) => rpc<{ ok: true; number: number; total: number; name: string } | Fail>('admin_draw_raffle', { p_raffle_id: id });
+export const adminVoidRaffleTicket = (ticketId: string, reason: string) => rpc<{ ok: true } | Fail>('admin_void_raffle_ticket', { p_ticket_id: ticketId, p_reason: reason });
+
 /** Mensajes en español para los códigos de error de negocio. */
 export const ERROR_TEXT: Record<string, string> = {
   not_authenticated: 'Inicia sesión para continuar.',
@@ -137,5 +153,19 @@ export const ERROR_TEXT: Record<string, string> = {
   user_not_found: 'Usuario no encontrado.',
   not_allowed: 'Acción no permitida para este usuario.',
   cannot_block_self: 'No puedes bloquearte a ti mismo.',
+  no_raffle: 'No hay un sorteo activo.',
+  raffle_not_open: 'El sorteo aún no se abre.',
+  raffle_closed: 'El sorteo ya terminó.',
+  raffle_open: 'El sorteo ya está abierto.',
+  raffle_drawn: 'Este sorteo ya se realizó.',
+  raffle_not_published: 'Publica el sorteo primero.',
+  max_tickets: 'Ya se alcanzó el máximo de boletos por cliente.',
+  reason_short: 'Escribe un motivo (mínimo 3 caracteres).',
+  invalid_quantity: 'Cantidad no válida.',
+  another_published: 'Ya hay otro sorteo publicado. Archívalo o pásalo a borrador primero.',
+  no_tickets: 'Todavía no hay boletos en juego.',
+  auto_mode: 'Este sorteo es automático: se realizará solo a la hora fijada.',
+  already_voided: 'Ese boleto ya estaba anulado.',
+  invalid_status: 'Estado no válido.',
 };
 export const errText = (code: string) => ERROR_TEXT[code] ?? 'No se pudo completar la acción.';

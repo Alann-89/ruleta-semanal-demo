@@ -51,7 +51,8 @@ const REASONS: Record<string, string> = {
 };
 
 /** Hero (titular + ruleta) y lámina blanca con el botón, el estado y el resto de la página (children). */
-export function WheelCard({ title, children }: { title: string; children?: ReactNode }) {
+/** `aside` se pinta junto a la ruleta (dentro del encabezado); `top`, arriba del título. */
+export function WheelCard({ title, children, aside, top }: { title: string; children?: ReactNode; aside?: ReactNode; top?: ReactNode }) {
   const { config, season, seasonFx, pub, pubLoading, me, session, authReady, clockOffset, signInWithGoogle, refreshMe, refreshPublic } = useApp();
   const toast = useToast();
   const wheel = useRef<WheelHandle>(null);
@@ -177,7 +178,9 @@ export function WheelCard({ title, children }: { title: string; children?: React
     <>
       <section aria-labelledby="ruleta-h" className="hero" style={seasonVars(season)}>
         {season && seasonFx.decor && <SeasonDecor season={season} />}
+        {aside}
         <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-7 sm:pt-9 lg:pb-10 lg:pt-6">
+          {top}
           <h1 id="ruleta-h" className="font-display mx-auto max-w-[17ch] text-balance text-center text-[clamp(1.8rem,7.6vw,3.3rem)] font-extrabold leading-[1.05] text-[color:var(--hero-ink)] md:max-w-[26ch]">{title}</h1>
           <div className="wheel-box mx-auto px-[1.5%] pb-1 pt-[13%] lg:pt-[11%]">
             <Wheel ref={wheel} sectors={wheelSectors} placeholder={placeholder} highlight={highlight} logoUrl={config.store.logo_url} storeName={config.store.name}

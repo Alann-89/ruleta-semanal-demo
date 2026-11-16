@@ -16,6 +16,7 @@ begin
 
   -- Limpieza de una ejecución anterior (TRUNCATE no activa los triggers de inmutabilidad)
   truncate public.coupons, public.extra_spins, public.spins, public.codes, public.prizes, public.audit_log, public.rate_limits cascade;
+  truncate public.raffle_reminders, public.raffle_tickets, public.raffle_codes, public.raffles cascade;
   update public.campaigns set status = 'draft', budget_max = null, budget_committed = 0,
     max_prizes_per_day = null, max_prizes_per_week = null, max_prizes_total = null,
     require_participation_code = false, max_extra_spins_per_week = 2, name = 'Ruleta semanal (demo)'

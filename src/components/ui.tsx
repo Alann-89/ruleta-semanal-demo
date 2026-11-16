@@ -125,7 +125,7 @@ export function CopyButton({ text, label = 'Copiar', className = '' }: { text: s
   );
 }
 
-export function QrImage({ value, size = 220, className = '' }: { value: string; size?: number; className?: string }) {
+export function QrImage({ value, size = 220, className = '', alt = 'Código QR del premio' }: { value: string; size?: number; className?: string; alt?: string }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
@@ -134,7 +134,7 @@ export function QrImage({ value, size = 220, className = '' }: { value: string; 
     return () => { alive = false; };
   }, [value, size]);
   return src
-    ? <img src={src} width={size} height={size} alt="Código QR del premio" className={`rounded-xl bg-white ${className}`} style={{ width: size, height: size }} />
+    ? <img src={src} width={size} height={size} alt={alt} className={`rounded-xl bg-white ${className}`} style={{ width: size, height: size }} />
     : <div className={`animate-pulse rounded-xl bg-surface-2 ${className}`} style={{ width: size, height: size }} aria-hidden="true" />;
 }
 

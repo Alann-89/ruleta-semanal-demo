@@ -5,6 +5,7 @@ import { WheelCard } from '../components/WheelCard';
 import { SimpleText } from '../components/ui';
 import { IconPin } from '../components/icons';
 import { KIND_LABEL, safeUrl } from '../lib/format';
+import { RaffleSide, RaffleStrip } from '../raffle/RaffleSpot';
 
 /** Los tres pasos, en una sola franja separada por líneas finas. */
 function Steps() {
@@ -112,7 +113,7 @@ export default function HomePage() {
     if (hash) setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 80);
   }, [hash]);
   return (
-    <WheelCard title={config.copy.welcome_title}>
+    <WheelCard title={config.copy.welcome_title} aside={<RaffleSide />} top={<RaffleStrip />}>
       <p className="mx-auto max-w-md text-center text-base leading-relaxed text-dim">{config.copy.welcome_text}</p>
       <Steps />
       <PrizeList />

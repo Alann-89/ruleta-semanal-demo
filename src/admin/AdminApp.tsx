@@ -3,7 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-route
 import { useApp } from '../context/AppContext';
 import { Avatar, PageLoader } from '../components/ui';
 import { Logo } from '../components/Layout';
-import { IconChart, IconGoogle, IconList, IconLogout, IconPalette, IconScan, IconSliders, IconTicket, IconUsers, IconGift, IconHome } from '../components/icons';
+import { IconChart, IconGoogle, IconList, IconLogout, IconPalette, IconScan, IconSliders, IconTicket, IconTrophy, IconUsers, IconGift, IconHome } from '../components/icons';
 import RedeemPage from './RedeemPage';
 
 const Dashboard = lazy(() => import('./DashboardPage'));
@@ -13,6 +13,7 @@ const Extras = lazy(() => import('./ExtrasPage'));
 const Appearance = lazy(() => import('./AppearancePage'));
 const UsersPage = lazy(() => import('./UsersPage'));
 const AuditPage = lazy(() => import('./AuditPage'));
+const RaffleAdmin = lazy(() => import('./RaffleAdminPage'));
 
 type NavItem = { to: string; label: string; icon: (p: React.SVGProps<SVGSVGElement>) => React.JSX.Element; end?: boolean };
 const ADMIN_NAV: NavItem[] = [
@@ -21,11 +22,15 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/resultados', label: 'Resultados', icon: IconGift },
   { to: '/admin/campana', label: 'Campaña', icon: IconSliders },
   { to: '/admin/giros', label: 'Giros extra y códigos', icon: IconTicket },
+  { to: '/admin/sorteo', label: 'Sorteo', icon: IconTrophy },
   { to: '/admin/apariencia', label: 'Apariencia', icon: IconPalette },
   { to: '/admin/usuarios', label: 'Usuarios', icon: IconUsers },
   { to: '/admin/auditoria', label: 'Auditoría', icon: IconList },
 ];
-const STAFF_NAV: NavItem[] = [{ to: '/admin/canjes', label: 'Canjes', icon: IconScan }];
+const STAFF_NAV: NavItem[] = [
+  { to: '/admin/canjes', label: 'Canjes', icon: IconScan },
+  { to: '/admin/sorteo', label: 'Sorteo', icon: IconTrophy },
+];
 
 export default function AdminApp() {
   const { authReady, session, me, meError, config, signInWithGoogle, signOut } = useApp();
@@ -70,6 +75,7 @@ export default function AdminApp() {
             <Routes>
               <Route index element={isAdmin ? <Dashboard /> : <Navigate to="/admin/canjes" replace />} />
               <Route path="canjes" element={<RedeemPage isAdmin={isAdmin} />} />
+              <Route path="sorteo" element={<RaffleAdmin isAdmin={isAdmin} />} />
               {isAdmin && (
                 <>
                   <Route path="resultados" element={<Prizes />} />

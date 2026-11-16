@@ -14,7 +14,8 @@ export function codeFromQr(text: string): string | null {
 
 interface BarcodeDetectorLike { detect(src: CanvasImageSource): Promise<{ rawValue: string }[]> }
 
-export function QrScanner({ onCode, onClose }: { onCode: (code: string) => void; onClose: () => void }) {
+/** `parse` decide qué QR acepta (por omisión, los cupones); devuelve null para seguir buscando. */
+export function QrScanner({ onCode, onClose, parse = codeFromQr }: { onCode: (code: string) => void; onClose: () => void; parse?: (text: string) => string | null }) {
   const video = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState('Apunta la cámara al QR del cliente.');
@@ -60,7 +61,7 @@ export function QrScanner({ onCode, onClose }: { onCode: (code: string) => void;
               text = jsQR(ctx.getImageData(0, 0, w, h).data, w, h)?.data ?? null;
             }
             if (text) {
-              const code = codeFromQr(text);
+              const code = parse(text);
               if (code) { stopped = true; onCode(code); return; }
               setHint('Ese QR no es de un premio de esta tienda.');
             }
@@ -72,7 +73,7 @@ export function QrScanner({ onCode, onClose }: { onCode: (code: string) => void;
     })();
 
     return () => { stopped = true; clearTimeout(raf); stream?.getTracks().forEach((t) => t.stop()); };
-  }, [onCode]);
+  }, [onCode, parse]);
 
   return (
     <div className="space-y-3">

@@ -15,6 +15,7 @@ import { NotFoundPage, PrivacyPage, RulesPage, SetupMissingPage } from './pages/
 const DemoUI = import.meta.env.VITE_DEMO === '1' ? lazy(() => import('./demo/DemoUI').then((m) => ({ default: m.DemoUI }))) : null;
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
+const RafflePage = lazy(() => import('./raffle/RafflePage'));
 const DevLogin = lazy(() => import('./pages/DevLogin'));
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
                 <Route element={<Layout />}>
                   <Route index element={<HomePage />} />
                   <Route path="premios" element={<MyPrizesPage />} />
+                  <Route path="sorteo" element={<RafflePage />} />
                   <Route path="historial" element={<HistoryPage />} />
                   <Route path="reglas" element={<RulesPage />} />
                   <Route path="privacidad" element={<PrivacyPage />} />

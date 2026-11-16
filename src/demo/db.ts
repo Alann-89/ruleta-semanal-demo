@@ -19,7 +19,7 @@ let dbPromise: Promise<PGlite> | null = null;
 
 async function init(): Promise<PGlite> {
   let db: PGlite;
-  try { db = new PGlite('idb://ruleta-demo-v1'); await db.waitReady; }
+  try { db = new PGlite('idb://ruleta-demo-v2'); await db.waitReady; }
   catch { db = new PGlite(); await db.waitReady; }       // sin IndexedDB (modo privado): en memoria
 
   const ready = await db.query<{ ok: boolean }>("select to_regclass('public.spins') is not null as ok").catch(() => null);
