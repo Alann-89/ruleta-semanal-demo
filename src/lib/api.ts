@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type {
   AdminConfig, AdminSpinRow, AdminUser, AuditRow, CodeRow, Dashboard, ExtraSpinRow, HistoryRow, MyCoupon,
   MyStatus, Paged, PublicState, SimulationResult, SiteConfig, SpinPayload, StaffCoupon, Prize, Role,
-  AdminRaffle, FoundCustomer, RaffleDetail, RaffleFields, RaffleState, RaffleStatus,
+  AdminRaffle, FoundCustomer, RaffleClaim, RaffleDetail, RaffleFields, RaffleState, RaffleStatus,
 } from './types';
 
 /** Error normalizado de la API (red, permisos, validación o error de negocio). */
@@ -130,6 +130,10 @@ export const adminSetRaffleStatus = (id: string, status: RaffleStatus) => rpc<{ 
 export const adminCreateRaffleCodes = (id: string, count: number) => rpc<{ ok: true; codes: string[] } | Fail>('admin_create_raffle_codes', { p_raffle_id: id, p_count: count });
 export const adminDrawRaffle = (id: string) => rpc<{ ok: true; number: number; total: number; name: string } | Fail>('admin_draw_raffle', { p_raffle_id: id });
 export const adminVoidRaffleTicket = (ticketId: string, reason: string) => rpc<{ ok: true } | Fail>('admin_void_raffle_ticket', { p_ticket_id: ticketId, p_reason: reason });
+export const staffLookupRaffleClaim = (code: string) => rpc<{ ok: true; claim: RaffleClaim } | Fail>('staff_lookup_raffle_claim', { p_code: code });
+export const staffClaimRafflePrize = (raffleId: string) => rpc<{ ok: true; claim: RaffleClaim } | Fail>('staff_claim_raffle_prize', { p_raffle_id: raffleId });
+/** Código normalizado: los premios del sorteo tienen 11 caracteres; los cupones de la ruleta, 12. */
+export const isRaffleClaimCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, '').length === 11;
 
 /** Mensajes en español para los códigos de error de negocio. */
 export const ERROR_TEXT: Record<string, string> = {
@@ -167,5 +171,7 @@ export const ERROR_TEXT: Record<string, string> = {
   auto_mode: 'Este sorteo es automático: se realizará solo a la hora fijada.',
   already_voided: 'Ese boleto ya estaba anulado.',
   invalid_status: 'Estado no válido.',
+  already_claimed: 'Este premio del sorteo ya fue entregado.',
+  claim_expired: 'Venció el plazo para reclamar este premio.',
 };
 export const errText = (code: string) => ERROR_TEXT[code] ?? 'No se pudo completar la acción.';

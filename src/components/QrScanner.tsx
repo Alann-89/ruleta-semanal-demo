@@ -9,7 +9,8 @@ export function codeFromQr(text: string): string | null {
     if (c) return c.toUpperCase().replace(/[^A-Z0-9]/g, '');
   } catch { /* no es URL */ }
   const raw = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  return /^[A-HJ-NP-Z2-9]{12}$/.test(raw) ? raw : null;
+  // 12 caracteres: cupón de la ruleta; 11: premio del sorteo.
+  return /^[A-HJ-NP-Z2-9]{11,12}$/.test(raw) ? raw : null;
 }
 
 interface BarcodeDetectorLike { detect(src: CanvasImageSource): Promise<{ rawValue: string }[]> }

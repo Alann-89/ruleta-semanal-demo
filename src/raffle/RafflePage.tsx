@@ -4,7 +4,10 @@ import { useApp } from '../context/AppContext';
 import { IconGoogle, IconLock, IconTrophy } from '../components/icons';
 import { PageLoader, QrImage, SimpleText } from '../components/ui';
 import { PageTitle } from '../components/Layout';
+import { SeasonDecor, seasonVars } from '../components/SeasonDecor';
+import { couponQrValue } from '../components/ResultModal';
 import { errText, redeemRaffleCode } from '../lib/api';
+import { groupCode } from '../lib/format';
 import type { RaffleInfo } from '../lib/types';
 import { phaseAt, refreshRaffle, useRaffleStore } from './store';
 import { celebrateWin, Countdown, fmtDayShort, fmtLong, fmtTime, PrizeImage, ticketLabel, TicketStub, useNow } from './parts';
@@ -51,6 +54,41 @@ function WinnerTicket({ r }: { r: RaffleInfo }) {
   );
 }
 
+/** Para la persona ganadora: su código y QR para recoger el premio en la tienda. */
+function ClaimPrize({ r, now }: { r: RaffleInfo; now: number }) {
+  const w = r.winner!;
+  const until = Date.parse(w.claim_until);
+  if (w.claimed_at) {
+    return (
+      <section aria-labelledby="reclamar-h" className="mb-10 rounded-2xl bg-surface-2 p-5">
+        <h2 id="reclamar-h" className="font-display text-2xl font-extrabold">Premio entregado</h2>
+        <p className="mt-1 leading-relaxed text-dim">Recogiste tu {r.prize} el {fmtLong(Date.parse(w.claimed_at))}. ¡Que lo disfrutes!</p>
+      </section>
+    );
+  }
+  if (now >= until || !w.claim_code) {
+    return (
+      <section aria-labelledby="reclamar-h" className="mb-10 rounded-2xl bg-surface-2 p-5">
+        <h2 id="reclamar-h" className="font-display text-2xl font-extrabold">Plazo terminado</h2>
+        <p className="mt-1 leading-relaxed text-dim">El plazo para recoger el premio terminó el {fmtLong(until)}. Si tienes dudas, acércate a la tienda.</p>
+      </section>
+    );
+  }
+  return (
+    <section aria-labelledby="reclamar-h" className="mb-10 grid items-center gap-5 sm:grid-cols-[auto_1fr]">
+      <div className="justify-self-center rounded-2xl border border-line bg-white p-2.5 sm:justify-self-start">
+        <QrImage value={couponQrValue(w.claim_code)} size={168} alt="Código QR para recoger el premio del sorteo" />
+      </div>
+      <div>
+        <h2 id="reclamar-h" className="font-display text-2xl font-extrabold">Recoge tu premio</h2>
+        <p className="mt-1 leading-relaxed text-dim">Pasa a la tienda con este código y una identificación oficial. Tienes hasta el <strong className="text-ink">{fmtLong(until)}</strong> para recoger tu {r.prize}.</p>
+        <p className="mt-3 text-sm text-dim">Si no se puede escanear, dicta este código:</p>
+        <p className="font-mono text-2xl font-bold tracking-[0.12em]">{groupCode(w.claim_code)}</p>
+      </div>
+    </section>
+  );
+}
+
 function CodeForm({ disabled }: { disabled: boolean }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -83,7 +121,7 @@ function CodeForm({ disabled }: { disabled: boolean }) {
 export default function RafflePage() {
   const { state, loaded, offset } = useRaffleStore();
   const now = useNow() + offset;
-  const { session, config, signInWithGoogle } = useApp();
+  const { session, config, season, seasonFx, signInWithGoogle } = useApp();
   const r = state?.raffle ?? null;
   const phase = r ? phaseAt(r, now) : null;
 
@@ -125,7 +163,8 @@ export default function RafflePage() {
 
   return (
     <>
-      <section aria-labelledby="sorteo-h" className="hero raffle-hero">
+      <section aria-labelledby="sorteo-h" className="hero raffle-hero" style={seasonVars(season)}>
+        {season && seasonFx.decor && <SeasonDecor season={season} />}
         <div className="relative mx-auto max-w-3xl px-4 pb-16 pt-8 text-center sm:pt-10">
           <h1 id="sorteo-h" className="font-display mx-auto max-w-[18ch] text-balance text-[clamp(1.9rem,7.4vw,3.2rem)] font-extrabold leading-[1.04] text-[color:var(--hero-ink)]">{r.title}</h1>
           <p className="mx-auto mt-2 max-w-md text-[0.98rem] text-[color:var(--hero-ink)] opacity-90">Solo para clientes con boleto</p>
@@ -154,15 +193,7 @@ export default function RafflePage() {
 
       <div className="sheet">
         <div className="mx-auto max-w-3xl px-4 pb-32 pt-9 md:pb-16">
-          {phase === 'drawn' && r.winner?.mine && (
-            <section aria-labelledby="reclamar-h" className="mb-10 grid items-center gap-5 sm:grid-cols-[auto_1fr]">
-              <QrImage value={`LUKY-SORTEO:${r.id}:${r.winner.number}`} size={150} alt="Código QR para reclamar el premio del sorteo" />
-              <div>
-                <h2 id="reclamar-h" className="font-display text-2xl font-extrabold">Reclama tu premio</h2>
-                <p className="mt-1 leading-relaxed text-dim">Pasa a la tienda con este código y una identificación. Tienes {r.claim_days} días para recoger tu premio: {r.prize}.</p>
-              </div>
-            </section>
-          )}
+          {phase === 'drawn' && r.winner?.mine && <ClaimPrize r={r} now={now} />}
 
           <section aria-labelledby="mis-boletos-h">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

@@ -122,7 +122,15 @@ export interface RaffleFields {
 }
 export interface RaffleInfo extends RaffleFields {
   id: string; phase: RafflePhase; total_tickets: number; published_at: string | null;
-  winner: { number: number; name: string; mine: boolean; at: string } | null;
+  winner: {
+    number: number; name: string; mine: boolean; at: string;
+    /** Fecha límite para reclamar el premio. */
+    claim_until: string;
+    /** Cuándo se entregó el premio (null si no se ha entregado). */
+    claimed_at: string | null;
+    /** Código para reclamar: solo lo recibe la persona ganadora y mientras no se entregue. */
+    claim_code: string | null;
+  } | null;
 }
 export interface MyRaffleTicket { number: number; source: TicketSource; created_at: string }
 export interface RaffleState {
@@ -134,6 +142,13 @@ export interface AdminRaffle extends RaffleFields {
   id: string; status: RaffleStatus; phase: RafflePhase; created_at: string; updated_at: string; drawn_at: string | null; published_at: string | null;
   tickets: number; participants: number; codes_total: number; codes_free: number; reminders: number;
   winner: { number: number; name: string | null; email: string; user_id: string } | null;
+  claim_until: string | null; claimed_at: string | null; claimed_by_name: string | null;
+}
+/** Premio del sorteo visto desde «Canjes». */
+export interface RaffleClaim {
+  raffle_id: string; title: string; prize: string; prize_detail: string | null; prize_image_url: string | null; claim_code: string;
+  number: number; name: string | null; email: string | null; drawn_at: string; claim_until: string;
+  claimed_at: string | null; claimed_by_name: string | null; status: 'pending' | 'claimed' | 'expired' | 'void';
 }
 export interface RaffleParticipant {
   user_id: string; name: string | null; email: string; last_at: string;

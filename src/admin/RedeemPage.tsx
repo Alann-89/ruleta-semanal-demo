@@ -2,14 +2,60 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/Toast';
-import { adminGetConfig, adminVoidCoupon, ApiError, errText, staffListCoupons, staffLookup, staffRedeem, type CouponFilters } from '../lib/api';
-import type { CouponStatus, Prize, StaffCoupon } from '../lib/types';
+import {
+  adminGetConfig, adminVoidCoupon, ApiError, errText, isRaffleClaimCode, staffClaimRafflePrize, staffListCoupons, staffLookup,
+  staffLookupRaffleClaim, staffRedeem, type CouponFilters,
+} from '../lib/api';
+import type { CouponStatus, Prize, RaffleClaim, StaffCoupon } from '../lib/types';
 import { downloadText, fmtMoney, fmtShort, fmtWeek, groupCode, KIND_LABEL, mondayOf, safeUrl, toCsv, valueLabel, zonedMidnightIso } from '../lib/format';
 import { Alert, Field, Modal, Pagination, Spinner, StatusBadge } from '../components/ui';
 import { QrScanner } from '../components/QrScanner';
-import { IconCheck, IconGift, IconScan } from '../components/icons';
+import { IconCheck, IconGift, IconScan, IconTrophy } from '../components/icons';
+import { ticketLabel } from '../raffle/parts';
 
 const LIMIT = 20;
+
+/** Premio del sorteo encontrado por su código: se entrega igual que un cupón. */
+function RaffleClaimDetail({ c, tz, onClaim, busy }: { c: RaffleClaim; tz: string; busy: boolean; onClaim: () => void }) {
+  const img = safeUrl(c.prize_image_url);
+  const banner = c.status === 'pending'
+    ? { cls: 'border-emerald-500 bg-emerald-50 text-emerald-900', text: 'Listo para entregar' }
+    : c.status === 'claimed'
+      ? { cls: 'border-red-500 bg-red-50 text-red-900', text: `YA ENTREGADO el ${fmtShort(c.claimed_at, tz)}${c.claimed_by_name ? ` · atendió ${c.claimed_by_name}` : ''}` }
+      : c.status === 'expired'
+        ? { cls: 'border-amber-500 bg-amber-50 text-amber-900', text: `PLAZO VENCIDO el ${fmtShort(c.claim_until, tz)}` }
+        : { cls: 'border-red-500 bg-red-50 text-red-900', text: 'NO VÁLIDO: la cuenta del ganador fue eliminada' };
+  return (
+    <div className="card overflow-hidden">
+      <div className={`border-b-2 px-4 py-2.5 text-sm font-bold ${banner.cls}`} role="status">{banner.text}</div>
+      <div className="grid gap-4 p-4 sm:grid-cols-[auto_1fr]">
+        {img
+          ? <img src={img} alt="" width={96} height={96} className="h-24 w-24 rounded-xl border border-line bg-white object-contain" />
+          : <span className="inline-flex h-24 w-24 items-center justify-center rounded-xl bg-surface-2 text-[#a8340e]" aria-hidden="true"><IconTrophy width={36} height={36} /></span>}
+        <div className="min-w-0 space-y-1">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#a8340e]">Premio del sorteo</p>
+          <p className="font-display text-xl font-semibold leading-tight">{c.prize}</p>
+          <p className="text-sm text-dim">{c.title}{c.prize_detail ? ` — ${c.prize_detail}` : ''}</p>
+          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt className="font-semibold">Ganador</dt><dd>{c.name ?? '—'} <span className="text-dim">({c.email ?? '—'})</span></dd>
+            <dt className="font-semibold">Boleto</dt><dd className="tabular-nums">{ticketLabel(c.number)}</dd>
+            <dt className="font-semibold">Código</dt><dd className="font-mono tracking-wider">{groupCode(c.claim_code)}</dd>
+            <dt className="font-semibold">Sorteado</dt><dd>{fmtShort(c.drawn_at, tz)}</dd>
+            <dt className="font-semibold">Recoger hasta</dt><dd>{fmtShort(c.claim_until, tz)}</dd>
+          </dl>
+          {c.status === 'pending' && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950">Pide una identificación oficial: el nombre debe coincidir con el de la cuenta.</p>
+          )}
+        </div>
+      </div>
+      {c.status === 'pending' && (
+        <div className="flex flex-wrap gap-2 border-t border-line p-3">
+          <button className="btn btn-primary !min-h-12 flex-1 text-base" disabled={busy} onClick={onClaim}><IconCheck width={18} height={18} /> Entregar premio…</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function CouponDetail({ c, tz, onRedeem, onVoid, busy, isAdmin }: {
   c: StaffCoupon; tz: string; busy: boolean; isAdmin: boolean; onRedeem: () => void; onVoid: () => void;
@@ -68,6 +114,9 @@ export default function RedeemPage({ isAdmin }: { isAdmin: boolean }) {
   const [restock, setRestock] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<StaffCoupon | null>(null);
+  const [claim, setClaim] = useState<RaffleClaim | null>(null);
+  const [claimConfirm, setClaimConfirm] = useState(false);
+  const [claimDone, setClaimDone] = useState<RaffleClaim | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
   // Tabla
@@ -97,14 +146,36 @@ export default function RedeemPage({ isAdmin }: { isAdmin: boolean }) {
   const lookup = useCallback(async (raw: string) => {
     const c = raw.trim();
     if (!c) return;
-    setLooking(true); setLookupError(null); setDone(null);
+    setLooking(true); setLookupError(null); setDone(null); setClaimDone(null);
     try {
-      const r = await staffLookup(c);
-      if (r.ok) { setFound(r.coupon); setCode(''); topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-      else { setFound(null); setLookupError(errText(r.error)); }
+      if (isRaffleClaimCode(c)) {
+        const r = await staffLookupRaffleClaim(c);
+        setFound(null);
+        if (r.ok) { setClaim(r.claim); setCode(''); topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        else { setClaim(null); setLookupError(errText(r.error)); }
+      } else {
+        const r = await staffLookup(c);
+        setClaim(null);
+        if (r.ok) { setFound(r.coupon); setCode(''); topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        else { setFound(null); setLookupError(errText(r.error)); }
+      }
     } catch (e) { setLookupError(e instanceof ApiError ? e.message : 'Error inesperado.'); }
     finally { setLooking(false); }
   }, []);
+
+  const doClaim = async () => {
+    if (!claim) return;
+    setBusy(true);
+    try {
+      const r = await staffClaimRafflePrize(claim.raffle_id);
+      if (r.ok) { setClaimDone(r.claim); setClaim(null); toast('Premio del sorteo entregado', 'ok'); }
+      else {
+        toast(errText(r.error), 'error');
+        const again = await staffLookupRaffleClaim(claim.claim_code); if (again.ok) setClaim(again.claim);
+      }
+    } catch (e) { toast(e instanceof Error ? e.message : 'Error', 'error'); }
+    finally { setBusy(false); setClaimConfirm(false); }
+  };
 
   // Un QR abierto con la cámara del teléfono llega como ?codigo=XXXX (solo localiza; no canjea).
   useEffect(() => {
@@ -165,7 +236,7 @@ export default function RedeemPage({ isAdmin }: { isAdmin: boolean }) {
     <div className="mx-auto max-w-5xl space-y-6">
       <div ref={topRef}>
         <h1 className="font-display text-2xl font-semibold">Canjear un premio</h1>
-        <p className="text-sm text-dim">Escanea el QR del cliente o escribe el código. Buscar un código nunca lo canjea: el canje se confirma aparte.</p>
+        <p className="text-sm text-dim">Escanea el QR del cliente o escribe el código: sirve para los cupones de la ruleta y para el premio del sorteo. Buscar un código nunca lo canjea: el canje se confirma aparte.</p>
       </div>
 
       <form className="card flex flex-col gap-3 p-4 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void lookup(code); }}>
@@ -181,7 +252,11 @@ export default function RedeemPage({ isAdmin }: { isAdmin: boolean }) {
       {done && (
         <Alert kind="ok"><strong>¡Canje registrado!</strong> Entrega: {done.prize_name} a {done.owner.name ?? done.owner.email}. Código {groupCode(done.code)}.</Alert>
       )}
+      {claimDone && (
+        <Alert kind="ok"><strong>¡Entrega registrada!</strong> Premio del sorteo: {claimDone.prize} a {claimDone.name ?? claimDone.email} (boleto {ticketLabel(claimDone.number)}).</Alert>
+      )}
       {found && <CouponDetail c={found} tz={tz} busy={busy} isAdmin={isAdmin} onRedeem={() => setConfirm(true)} onVoid={() => setVoiding(found)} />}
+      {claim && <RaffleClaimDetail c={claim} tz={tz} busy={busy} onClaim={() => setClaimConfirm(true)} />}
 
       <section aria-labelledby="ganadores-h" className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -236,7 +311,7 @@ export default function RedeemPage({ isAdmin }: { isAdmin: boolean }) {
                     <td data-label="Estado"><StatusBadge status={r.effective_status as CouponStatus} />{r.void_reason && <span className="block text-xs text-dim">{r.void_reason}</span>}</td>
                     <td data-label="Canje">{r.redeemed_at ? <>{fmtShort(r.redeemed_at, tz)}<span className="block text-xs text-dim">{r.redeemed_by_name}</span></> : <span className="text-dim">—</span>}</td>
                     <td data-label="">
-                      <button className="btn btn-ghost btn-sm" onClick={() => { setFound(r); setDone(null); topRef.current?.scrollIntoView({ behavior: 'smooth' }); }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setFound(r); setDone(null); setClaim(null); setClaimDone(null); topRef.current?.scrollIntoView({ behavior: 'smooth' }); }}>
                         {r.effective_status === 'pending' ? 'Canjear' : 'Ver'}
                       </button>
                     </td>
@@ -262,6 +337,20 @@ export default function RedeemPage({ isAdmin }: { isAdmin: boolean }) {
             <div className="flex gap-2">
               <button className="btn btn-ghost flex-1" disabled={busy} onClick={() => setConfirm(false)}>Cancelar</button>
               <button className="btn btn-primary flex-1" disabled={busy} onClick={() => void doRedeem()}>{busy ? 'Canjeando…' : 'Sí, canjear'}</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={claimConfirm && !!claim} onClose={() => !busy && setClaimConfirm(false)} title="Confirmar entrega">
+        {claim && (
+          <div className="space-y-3">
+            <p>¿Entregar <strong>{claim.prize}</strong> a <strong>{claim.name ?? claim.email}</strong> (boleto {ticketLabel(claim.number)})?</p>
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950">Revisa que su identificación tenga el mismo nombre que la cuenta.</p>
+            <p className="text-sm text-dim">Esta acción se registra a tu nombre y no se puede repetir.</p>
+            <div className="flex gap-2">
+              <button className="btn btn-ghost flex-1" disabled={busy} onClick={() => setClaimConfirm(false)}>Cancelar</button>
+              <button className="btn btn-primary flex-1" disabled={busy} onClick={() => void doClaim()}>{busy ? 'Entregando…' : 'Sí, entregar'}</button>
             </div>
           </div>
         )}

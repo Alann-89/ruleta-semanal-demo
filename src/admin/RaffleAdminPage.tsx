@@ -376,6 +376,15 @@ function Draw({ r, onDrawn }: { r: AdminRaffle; onDrawn: () => void }) {
             <p className="font-display text-xl font-bold tabular-nums">{ticketLabel(r.winner.number)} · {r.winner.name ?? 'Sin nombre'}</p>
             <p className="break-all text-sm text-dim">{r.winner.email}</p>
             <p className="text-sm text-dim">Elegido el {fmtLong(Date.parse(r.drawn_at ?? r.updated_at))} entre {r.tickets} boletos. Ya aparece en la pestaña «Sorteo» de los clientes.</p>
+            {r.claimed_at ? (
+              <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-ok"><IconCheck width={16} height={16} /> Premio entregado el {fmtLong(Date.parse(r.claimed_at))}{r.claimed_by_name ? ` · atendió ${r.claimed_by_name}` : ''}</p>
+            ) : r.claim_until && Date.now() >= Date.parse(r.claim_until) ? (
+              <p className="mt-2 text-sm font-semibold text-warn">No se recogió: el plazo terminó el {fmtLong(Date.parse(r.claim_until))}.</p>
+            ) : (
+              <p className="mt-2 text-sm">
+                <strong>Pendiente de entregar</strong>{r.claim_until ? ` (hasta el ${fmtLong(Date.parse(r.claim_until))})` : ''}. El ganador tiene un código y un QR en su pestaña «Sorteo»; se entrega en <Link to="/admin/canjes" className="font-semibold underline underline-offset-4">Canjes</Link>. No archives el sorteo antes de entregarlo: el ganador dejaría de ver su código.
+              </p>
+            )}
           </div>
         </div>
       ) : r.status !== 'published' ? (
