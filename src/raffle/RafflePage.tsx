@@ -84,6 +84,7 @@ function ClaimPrize({ r, now }: { r: RaffleInfo; now: number }) {
         <p className="mt-1 leading-relaxed text-dim">Pasa a la tienda con este código y una identificación oficial. Tienes hasta el <strong className="text-ink">{fmtLong(until)}</strong> para recoger tu {r.prize}.</p>
         <p className="mt-3 text-sm text-dim">Si no se puede escanear, dicta este código:</p>
         <p className="font-mono text-2xl font-bold tracking-[0.12em]">{groupCode(w.claim_code)}</p>
+        <p className="mt-2 text-sm text-dim">También queda guardado en <Link to="/premios" className="font-semibold underline underline-offset-4">Mis premios</Link>.</p>
       </div>
     </section>
   );

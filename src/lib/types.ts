@@ -144,6 +144,14 @@ export interface AdminRaffle extends RaffleFields {
   winner: { number: number; name: string | null; email: string; user_id: string } | null;
   claim_until: string | null; claimed_at: string | null; claimed_by_name: string | null;
 }
+/** Premio de sorteo ganado, visto en «Mis premios». */
+export interface MyRafflePrize {
+  raffle_id: string; title: string; prize: string; prize_detail: string | null; prize_image_url: string | null;
+  number: number; drawn_at: string; claim_until: string; claimed_at: string | null;
+  status: 'pending' | 'claimed' | 'expired';
+  /** Solo mientras se puede recoger. */
+  claim_code: string | null;
+}
 /** Premio del sorteo visto desde «Canjes». */
 export interface RaffleClaim {
   raffle_id: string; title: string; prize: string; prize_detail: string | null; prize_image_url: string | null; claim_code: string;

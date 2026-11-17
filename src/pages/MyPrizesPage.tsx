@@ -1,15 +1,71 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { getMyCoupons, ApiError } from '../lib/api';
+import { getMyCoupons, getMyRafflePrizes, ApiError } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/Toast';
-import type { MyCoupon } from '../lib/types';
+import type { MyCoupon, MyRafflePrize } from '../lib/types';
 import { fmtDay, fmtShort, groupCode, safeUrl, valueLabel } from '../lib/format';
 import { Alert, CopyButton, Empty, PageLoader, QrImage, SimpleText, StatusBadge } from '../components/ui';
 import { PageTitle } from '../components/Layout';
 import { couponQrValue } from '../components/ResultModal';
 import { LoginGate } from './LoginGate';
-import { IconGift } from '../components/icons';
+import { IconGift, IconTrophy } from '../components/icons';
+
+const RAFFLE_BADGE: Record<MyRafflePrize['status'], [string, string]> = {
+  pending: ['pending', 'Por recoger'], claimed: ['redeemed', 'Entregado'], expired: ['expired', 'Vencido'],
+};
+const raffleKey = (p: MyRafflePrize) => `sorteo:${p.raffle_id}`;
+
+/** Premio ganado en un sorteo: se recoge en la tienda con su código o QR, como un cupón. */
+function RafflePrizeCard({ p, open, onToggle, tz }: { p: MyRafflePrize; open: boolean; onToggle: () => void; tz?: string }) {
+  const img = safeUrl(p.prize_image_url);
+  const [badge, label] = RAFFLE_BADGE[p.status];
+  return (
+    <li className={`card overflow-hidden ${p.status === 'pending' ? 'ring-2 ring-[color:var(--c-accent)]' : 'opacity-85'}`}>
+      <div className="flex gap-4 p-4">
+        {img
+          ? <img src={img} alt="" loading="lazy" width={72} height={72} className="h-[72px] w-[72px] shrink-0 rounded-xl bg-white object-contain" />
+          : <span className="inline-flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-xl bg-surface-2 text-[color:var(--c-primary)]" aria-hidden="true"><IconTrophy width={30} height={30} /></span>}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold uppercase tracking-wider text-[color:var(--c-primary)]">Premio del sorteo · boleto N.º {String(p.number).padStart(4, '0')}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-lg font-semibold leading-tight">{p.prize}</h2>
+            <span className={`badge badge-${badge}`}>{label}</span>
+          </div>
+          <p className="mt-0.5 text-sm text-dim">{p.title}{p.prize_detail ? ` · ${p.prize_detail}` : ''}</p>
+          <p className="mt-1 text-xs text-dim">
+            {p.status === 'claimed' ? `Entregado el ${fmtShort(p.claimed_at, tz)}`
+              : p.status === 'expired' ? `El plazo para recogerlo terminó el ${fmtDay(p.claim_until, tz)}`
+              : `Recógelo antes del ${fmtShort(p.claim_until, tz)}`}
+          </p>
+        </div>
+      </div>
+      {p.status === 'pending' && p.claim_code && (
+        <>
+          <p className="border-t border-line bg-surface-2 px-4 py-2 text-sm">Lleva una identificación oficial con el mismo nombre de tu cuenta.</p>
+          <div className="border-t border-line px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-dim">Código</p>
+                <p className="select-all font-mono text-xl font-bold tracking-widest">{groupCode(p.claim_code)}</p>
+              </div>
+              <div className="flex gap-2">
+                <CopyButton text={p.claim_code} />
+                <button className="btn btn-ghost btn-sm" aria-expanded={open} onClick={onToggle}>{open ? 'Ocultar QR' : 'Mostrar QR'}</button>
+              </div>
+            </div>
+            {open && (
+              <div className="mt-3 flex flex-col items-center gap-1">
+                <QrImage value={couponQrValue(p.claim_code)} size={200} alt="Código QR para recoger el premio del sorteo" />
+                <p className="text-xs text-dim">El personal lo escanea para localizar tu premio. Escanearlo no lo entrega.</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </li>
+  );
+}
 
 const EMAIL_ENABLED = import.meta.env.VITE_ENABLE_EMAIL === '1';
 
@@ -79,15 +135,18 @@ function CouponCard({ c, open, onToggle, tz }: { c: MyCoupon; open: boolean; onT
 export default function MyPrizesPage() {
   const { session, authReady, pub, config } = useApp();
   const [rows, setRows] = useState<MyCoupon[] | null>(null);
+  const [raffles, setRaffles] = useState<MyRafflePrize[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const tz = pub?.campaign?.timezone;
 
   const load = useCallback(async () => {
     try {
-      const r = await getMyCoupons();
-      setRows(r); setError(null);
-      setOpenId((cur) => cur ?? r.find((x) => x.effective_status === 'pending')?.id ?? null);
+      // Si la consulta del sorteo falla, los cupones se muestran igual.
+      const [r, rp] = await Promise.all([getMyCoupons(), getMyRafflePrizes().catch(() => [] as MyRafflePrize[])]);
+      setRows(r); setRaffles(rp); setError(null);
+      const firstRaffle = rp.find((x) => x.status === 'pending');
+      setOpenId((cur) => cur ?? (firstRaffle ? raffleKey(firstRaffle) : r.find((x) => x.effective_status === 'pending')?.id ?? null));
     } catch (e) { setError(e instanceof ApiError ? e.message : 'Error inesperado.'); }
   }, []);
 
@@ -98,22 +157,34 @@ export default function MyPrizesPage() {
 
   const pending = rows?.filter((r) => r.effective_status === 'pending') ?? [];
   const past = rows?.filter((r) => r.effective_status !== 'pending') ?? [];
+  const rafflePending = raffles.filter((p) => p.status === 'pending');
+  const rafflePast = raffles.filter((p) => p.status !== 'pending');
+  const toggle = (id: string) => setOpenId(openId === id ? null : id);
+  const raffleCard = (p: MyRafflePrize) => <RafflePrizeCard key={raffleKey(p)} p={p} tz={tz} open={openId === raffleKey(p)} onToggle={() => toggle(raffleKey(p))} />;
+  const pendingCount = pending.length + rafflePending.length;
+  const pastCount = past.length + rafflePast.length;
   return (
     <>
       <PageTitle sub="Aquí quedan guardados tus códigos y QR. Puedes consultarlos cuando quieras.">Mis premios</PageTitle>
       {error && <Alert kind="error" className="mb-4">{error} <button className="underline" onClick={() => void load()}>Reintentar</button></Alert>}
       {!rows && !error && <PageLoader />}
-      {rows && rows.length === 0 && <Empty title="Aún no tienes premios">Cuando ganes un premio canjeable aparecerá aquí con su código y QR.</Empty>}
-      {pending.length > 0 && (
+      {rows && pendingCount + pastCount === 0 && <Empty title="Aún no tienes premios">Cuando ganes un premio canjeable aparecerá aquí con su código y QR.</Empty>}
+      {pendingCount > 0 && (
         <>
-          <h2 className="font-display mb-3 text-xl font-semibold">Por canjear ({pending.length})</h2>
-          <ul className="space-y-4">{pending.map((c) => <CouponCard key={c.id} c={c} tz={tz} open={openId === c.id} onToggle={() => setOpenId(openId === c.id ? null : c.id)} />)}</ul>
+          <h2 className="font-display mb-3 text-xl font-semibold">Por canjear ({pendingCount})</h2>
+          <ul className="space-y-4">
+            {rafflePending.map(raffleCard)}
+            {pending.map((c) => <CouponCard key={c.id} c={c} tz={tz} open={openId === c.id} onToggle={() => toggle(c.id)} />)}
+          </ul>
         </>
       )}
-      {past.length > 0 && (
+      {pastCount > 0 && (
         <>
           <h2 className="font-display mb-3 mt-8 text-xl font-semibold">Historial de premios</h2>
-          <ul className="space-y-4">{past.map((c) => <CouponCard key={c.id} c={c} tz={tz} open={openId === c.id} onToggle={() => setOpenId(openId === c.id ? null : c.id)} />)}</ul>
+          <ul className="space-y-4">
+            {rafflePast.map(raffleCard)}
+            {past.map((c) => <CouponCard key={c.id} c={c} tz={tz} open={openId === c.id} onToggle={() => toggle(c.id)} />)}
+          </ul>
         </>
       )}
       {config.redeem_text && (

@@ -382,7 +382,7 @@ function Draw({ r, onDrawn }: { r: AdminRaffle; onDrawn: () => void }) {
               <p className="mt-2 text-sm font-semibold text-warn">No se recogió: el plazo terminó el {fmtLong(Date.parse(r.claim_until))}.</p>
             ) : (
               <p className="mt-2 text-sm">
-                <strong>Pendiente de entregar</strong>{r.claim_until ? ` (hasta el ${fmtLong(Date.parse(r.claim_until))})` : ''}. El ganador tiene un código y un QR en su pestaña «Sorteo»; se entrega en <Link to="/admin/canjes" className="font-semibold underline underline-offset-4">Canjes</Link>. No archives el sorteo antes de entregarlo: el ganador dejaría de ver su código.
+                <strong>Pendiente de entregar</strong>{r.claim_until ? ` (hasta el ${fmtLong(Date.parse(r.claim_until))})` : ''}. El ganador tiene un código y un QR en su pestaña «Sorteo» y en «Mis premios» (ahí sigue aunque archives el sorteo); se entrega en <Link to="/admin/canjes" className="font-semibold underline underline-offset-4">Canjes</Link>.
               </p>
             )}
           </div>

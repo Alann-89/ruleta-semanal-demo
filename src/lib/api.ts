@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type {
   AdminConfig, AdminSpinRow, AdminUser, AuditRow, CodeRow, Dashboard, ExtraSpinRow, HistoryRow, MyCoupon,
   MyStatus, Paged, PublicState, SimulationResult, SiteConfig, SpinPayload, StaffCoupon, Prize, Role,
-  AdminRaffle, FoundCustomer, RaffleClaim, RaffleDetail, RaffleFields, RaffleState, RaffleStatus,
+  AdminRaffle, FoundCustomer, MyRafflePrize, RaffleClaim, RaffleDetail, RaffleFields, RaffleState, RaffleStatus,
 } from './types';
 
 /** Error normalizado de la API (red, permisos, validación o error de negocio). */
@@ -130,6 +130,7 @@ export const adminSetRaffleStatus = (id: string, status: RaffleStatus) => rpc<{ 
 export const adminCreateRaffleCodes = (id: string, count: number) => rpc<{ ok: true; codes: string[] } | Fail>('admin_create_raffle_codes', { p_raffle_id: id, p_count: count });
 export const adminDrawRaffle = (id: string) => rpc<{ ok: true; number: number; total: number; name: string } | Fail>('admin_draw_raffle', { p_raffle_id: id });
 export const adminVoidRaffleTicket = (ticketId: string, reason: string) => rpc<{ ok: true } | Fail>('admin_void_raffle_ticket', { p_ticket_id: ticketId, p_reason: reason });
+export const getMyRafflePrizes = () => rpc<MyRafflePrize[]>('get_my_raffle_prizes');
 export const staffLookupRaffleClaim = (code: string) => rpc<{ ok: true; claim: RaffleClaim } | Fail>('staff_lookup_raffle_claim', { p_code: code });
 export const staffClaimRafflePrize = (raffleId: string) => rpc<{ ok: true; claim: RaffleClaim } | Fail>('staff_claim_raffle_prize', { p_raffle_id: raffleId });
 /** Código normalizado: los premios del sorteo tienen 11 caracteres; los cupones de la ruleta, 12. */
